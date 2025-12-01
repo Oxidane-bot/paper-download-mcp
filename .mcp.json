@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "paper-download": {
-      "command": "uv",
-      "args": ["--directory", "/home/oxidane/projects/paper-download-mcp", "run", "python", "-m", "paper_download_mcp.server"],
+      "command": "bash",
+      "args": ["-c", "cd /home/oxidane/projects/paper-download-mcp && uv run python -m paper_download_mcp.server"],
       "env": {
         "SCIHUB_CLI_EMAIL": "test@university.edu"
       }
