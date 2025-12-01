@@ -41,15 +41,14 @@ def _require_email() -> str:
     return EMAIL
 
 
-# Import tools to register them with the server
-# These imports must happen after mcp is initialized
-from .tools import download, metadata  # noqa: E402, F401
-
-
 def main():
     """Main entry point for the MCP server."""
     # Validate email configuration on startup
     _require_email()
+
+    # Import tools to register them with the server
+    # Must import before mcp.run() to ensure tools are registered
+    from .tools import download, metadata  # noqa: F401
 
     # Run the FastMCP server with stdio transport
     mcp.run(transport="stdio")
