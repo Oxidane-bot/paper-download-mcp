@@ -3,7 +3,7 @@ Unpaywall source implementation.
 """
 
 import requests
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from .base import PaperSource
 from ..utils.logging import get_logger
 
@@ -96,7 +96,7 @@ class UnpaywallSource(PaperSource):
             logger.warning(f"[Unpaywall] Error parsing response for {doi}: {e}")
             return None
 
-    def get_metadata(self, doi: str) -> Optional[Dict[str, str]]:
+    def get_metadata(self, doi: str) -> Optional[Dict[str, Any]]:
         """
         Get metadata from Unpaywall.
 
@@ -104,7 +104,8 @@ class UnpaywallSource(PaperSource):
             doi: The DOI to look up
 
         Returns:
-            Dictionary with title, year, etc. or None
+            Dictionary with title (str), year (int), journal (str),
+            is_oa (bool), oa_status (str), or None if not found
         """
         try:
             url = f"{self.base_url}/{doi}"
@@ -114,9 +115,11 @@ class UnpaywallSource(PaperSource):
 
             if response.status_code == 200:
                 data = response.json()
+                # Keep year as int for proper comparison with thresholds
+                year = data.get("year")
                 return {
                     "title": data.get("title", ""),
-                    "year": str(data.get("year", "")),
+                    "year": int(year) if year else None,
                     "journal": data.get("journal_name", ""),
                     "is_oa": data.get("is_oa", False),
                     "oa_status": data.get("oa_status", "")
