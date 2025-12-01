@@ -51,8 +51,8 @@ def main():
     # Validate email configuration on startup
     _require_email()
 
-    # Run the FastMCP server
-    mcp.run()
+    # Run the FastMCP server with stdio transport
+    mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":
