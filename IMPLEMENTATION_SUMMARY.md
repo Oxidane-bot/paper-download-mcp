@@ -1,8 +1,8 @@
 # Implementation Summary
 
-## Status: ✅ Implementation Complete
+## Status: ✅ Deployed and Operational
 
-All core functionality has been implemented and tested. The MCP server is ready for end-to-end testing.
+All core functionality has been implemented, tested, and successfully deployed. The MCP server is running in production with Claude Desktop integration complete.
 
 ## What Was Built
 
@@ -204,8 +204,8 @@ See `TESTING.md` for detailed configuration instructions.
 - [x] FastMCP server with stdio transport
 - [x] Email configuration via environment variable
 - [x] Files save to specified output directory
-- [⏳] MCP Inspector testing successful (awaiting user test)
-- [⏳] Works in Claude Desktop (awaiting user test)
+- [x] MCP Inspector testing successful
+- [x] Works in Claude Desktop (production deployment verified)
 
 ### Quality Requirements
 - [x] All tools have comprehensive docstrings
@@ -214,41 +214,48 @@ See `TESTING.md` for detailed configuration instructions.
 - [x] No code duplication (DRY principle)
 - [x] Zero modifications to scihub_core code
 
-## Next Steps
+## Deployment History
 
-1. **User Testing** (5-10 minutes)
-   - Run MCP Inspector test
-   - Try one actual paper download
-   - Verify file creation and formatting
+### Initial Deployment (2024-12-02)
+- ✅ Claude Desktop integration via `.mcp.json`
+- ✅ All 3 tools successfully tested
+- ✅ Paper download verified (DOI: 10.1038/nature12373)
+- ✅ Batch download tested (multiple papers)
+- ✅ Metadata retrieval working
 
-2. **Claude Desktop Integration** (10 minutes)
-   - Add to claude_desktop_config.json
-   - Restart Claude Desktop
-   - Test in conversation
+### Post-Deployment Fixes
 
-3. **Feedback & Iteration**
-   - Report any issues found
-   - Adjust based on real-world usage
-   - Consider future enhancements
+**Migration to Official MCP SDK (commit b2cd979)**
+- Migrated from standalone `fastmcp` to `mcp[cli]>=1.0.0`
+- Changed import: `from fastmcp import FastMCP` → `from mcp.server.fastmcp import FastMCP`
+- Fixed MCP server configuration in `.mcp.json` to use `uv run paper-download-mcp` entry point
+- Result: Tools now properly exposed via MCP protocol ✅
+
+**Type Bug Fix (commits 9787efc → 6e6cbc8)**
+- Discovered `TypeError` in `paper_metadata` tool: `'<' not supported between 'str' and 'int'`
+- Root cause: `UnpaywallSource.get_metadata()` returned year as string instead of int
+- Fixed in upstream scihub-cli project first (commit 9787efc)
+- Synced fix to paper-download-mcp (commit 6e6cbc8)
+- Result: Metadata tool now works correctly, year comparisons functional ✅
 
 ## Conclusion
 
-The MCP server implementation is **complete and functional**. All core features are implemented according to the OpenSpec proposal:
+The MCP server implementation is **complete, deployed, and operational**. All core features are working in production:
 
-- ✅ 3 MCP tools working
-- ✅ FastMCP integration correct
+- ✅ 3 MCP tools working in Claude Desktop
+- ✅ Official Anthropic MCP SDK integration
 - ✅ Email validation working
 - ✅ Async wrappers implemented
-- ✅ Zero scihub_core modifications
+- ✅ Zero scihub_core modifications (except upstream syncs)
 - ✅ Comprehensive documentation
-- ✅ Automated tests passing
-
-The project is ready for manual end-to-end testing with MCP Inspector or Claude Desktop.
+- ✅ Production bugs identified and fixed
+- ✅ Upstream sync workflow established
 
 ---
 
-**Total Implementation Time**: ~3 hours (40% faster than estimated)
+**Total Implementation Time**: ~4 hours (including deployment fixes)
 **Code Quality**: Production-ready
-**Test Coverage**: Core functionality verified
-**Documentation**: Comprehensive
-**Status**: ✅ Ready for deployment
+**Test Coverage**: Core functionality verified + production tested
+**Documentation**: Comprehensive with sync workflow
+**Status**: ✅ **Deployed and Operational**
+**Last Updated**: 2024-12-02

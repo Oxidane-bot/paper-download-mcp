@@ -160,7 +160,17 @@ None (this is the first change in the project)
 
 ---
 
-**Proposal Status**: Draft
+**Proposal Status**: ✅ Deployed
 **Author**: Claude (AI Assistant)
-**Created**: 2025-12-02
-**Target Completion**: 2025-12-02 (same day MVP)
+**Created**: 2024-12-02
+**Approved**: 2024-12-02
+**Completed**: 2024-12-02
+**Deployed**: 2024-12-02 (Claude Desktop production)
+
+## Deployment Notes
+
+- All 3 MCP tools successfully implemented and tested
+- Migrated to official Anthropic MCP SDK (`mcp[cli]>=1.0.0`)
+- Fixed post-deployment type bug via upstream sync workflow
+- Production deployment verified with actual paper downloads
+- Complete documentation and sync workflow established

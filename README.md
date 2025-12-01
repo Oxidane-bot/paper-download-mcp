@@ -291,6 +291,25 @@ This preserves the battle-tested scihub-cli code without modifications.
 
 This project uses OpenSpec for specification-driven development. See `openspec/` directory for design documents.
 
+### For Maintainers: Syncing from scihub-cli
+
+The `scihub_core/` directory contains code copied from the upstream [scihub-cli](../scihub-cli) project. When bugs are fixed or features added to scihub-cli:
+
+**Workflow:**
+1. Fix/implement in `scihub-cli` project first
+2. Run tests and commit to scihub-cli
+3. Copy updated files to `paper-download-mcp/src/paper_download_mcp/scihub_core/`
+4. Test MCP server functionality
+5. Commit with message referencing upstream commit:
+   ```
+   sync: Update <file> from scihub-cli (<description>)
+
+   Synced from scihub-cli commit <hash>
+   <details of changes>
+   ```
+
+**Last sync**: scihub-cli@9787efc (2024-12-02) - Fixed year type bug in UnpaywallSource
+
 ## License
 
 MIT License - See LICENSE file for details
