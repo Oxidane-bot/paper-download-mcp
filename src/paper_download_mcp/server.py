@@ -1,7 +1,7 @@
 """FastMCP server entry point for paper download MCP server."""
 
 import os
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
 
 # Initialize FastMCP server
 mcp = FastMCP("paper-download-mcp")
