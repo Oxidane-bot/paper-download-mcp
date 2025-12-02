@@ -5,6 +5,8 @@ import asyncio
 import os
 import sys
 
+import pytest
+
 # Set email before imports
 os.environ["SCIHUB_CLI_EMAIL"] = "test@university.edu"
 
@@ -13,6 +15,7 @@ sys.path.insert(0, "src")
 from paper_download_mcp.scihub_core.sources.unpaywall_source import UnpaywallSource
 
 
+@pytest.mark.asyncio
 async def test_unpaywall_api():
     """Test Unpaywall API directly."""
     print("=" * 60)
