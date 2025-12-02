@@ -67,3 +67,14 @@ dmypy.json
 # Temporary files
 *.tmp
 *.bak
+
+# Development and documentation files
+.claude/
+openspec/
+AGENTS.md
+CLAUDE.md
+IMPLEMENTATION_SUMMARY.md
+TESTING.md
+TEST_MCP.md
+.mcp.json
+test_*.py
