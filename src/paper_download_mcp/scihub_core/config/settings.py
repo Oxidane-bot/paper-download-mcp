@@ -41,11 +41,12 @@ class Settings:
         self.enable_year_routing = os.getenv('SCIHUB_ENABLE_ROUTING', str(self.ENABLE_YEAR_ROUTING)).lower() == 'true'
 
         # Email configuration priority:
-        # 1. Environment variable (for backward compatibility)
-        # 2. Config file
-        # 3. None (will prompt user)
+        # 1. PAPER_DOWNLOAD_EMAIL environment variable (primary for MCP server)
+        # 2. SCIHUB_CLI_EMAIL environment variable (for backward compatibility)
+        # 3. Config file
+        # 4. None (will prompt user)
         from .user_config import user_config
-        self.email = os.getenv('SCIHUB_CLI_EMAIL') or user_config.get_email()
+        self.email = os.getenv('PAPER_DOWNLOAD_EMAIL') or os.getenv('SCIHUB_CLI_EMAIL') or user_config.get_email()
 
         # Logging configuration
         user_home = str(Path.home())

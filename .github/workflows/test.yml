@@ -38,4 +38,4 @@ jobs:
     - name: Run tests
       run: uv run pytest tests/ -v
       env:
-        SCIHUB_CLI_EMAIL: test@example.com
+        PAPER_DOWNLOAD_EMAIL: test@example.com

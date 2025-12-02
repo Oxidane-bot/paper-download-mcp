@@ -7,6 +7,8 @@
 
 MCP server for downloading academic papers from multiple sources with intelligent routing.
 
+> **Note**: This project is built on top of [scihub-cli](https://github.com/Oxidane-bot/scihub-cli), adapting its core functionality for MCP integration. If you find this useful, consider starring both projects!
+
 ## Features
 
 - **Multi-Source Support**: Downloads from Sci-Hub and Unpaywall with automatic fallback
@@ -32,7 +34,7 @@ No manual installation required! Use `uvx` for automatic environment management:
       "command": "uvx",
       "args": ["paper-download-mcp"],
       "env": {
-        "SCIHUB_CLI_EMAIL": "your-email@university.edu"
+        "PAPER_DOWNLOAD_EMAIL": "your-email@university.edu"
       }
     }
   }
@@ -52,13 +54,13 @@ uv run python -m paper_download_mcp.server
 
 ### Required Environment Variables
 
-- `SCIHUB_CLI_EMAIL`: Your email address (required for Unpaywall API compliance)
+- `PAPER_DOWNLOAD_EMAIL`: Your email address (required for Unpaywall API compliance)
   - Example: `researcher@university.edu`
   - Used for Unpaywall API tracking and contact purposes
 
 ### Optional Environment Variables
 
-- `SCIHUB_OUTPUT_DIR`: Default output directory (default: `./downloads`)
+- `PAPER_DOWNLOAD_OUTPUT_DIR`: Default output directory (default: `./downloads`)
 
 ### Claude Desktop Setup
 
@@ -71,8 +73,8 @@ Add to your `claude_desktop_config.json`:
       "command": "uvx",
       "args": ["paper-download-mcp"],
       "env": {
-        "SCIHUB_CLI_EMAIL": "your-email@university.edu",
-        "SCIHUB_OUTPUT_DIR": "/path/to/papers"
+        "PAPER_DOWNLOAD_EMAIL": "your-email@university.edu",
+        "PAPER_DOWNLOAD_OUTPUT_DIR": "/path/to/papers"
       }
     }
   }
@@ -166,7 +168,7 @@ The server uses year-based routing to maximize download success:
 
 ## Troubleshooting
 
-### "SCIHUB_CLI_EMAIL environment variable is required"
+### "PAPER_DOWNLOAD_EMAIL environment variable is required"
 
 **Solution**: Set the email in your Claude Desktop config (see Configuration section above).
 
@@ -209,10 +211,9 @@ The server validates PDFs before returning. If you encounter corruption:
 Test the server with MCP Inspector:
 
 ```bash
+export PAPER_DOWNLOAD_EMAIL=test@example.com
 npx @modelcontextprotocol/inspector uv run python -m paper_download_mcp.server
 ```
-
-Set `SCIHUB_CLI_EMAIL` before running.
 
 ### Unit Tests
 
@@ -294,8 +295,6 @@ This preserves the battle-tested scihub-cli code without modifications.
 
 ## Contributing
 
-This project uses OpenSpec for specification-driven development. See `openspec/` directory for design documents.
-
 ### For Maintainers: Syncing from scihub-cli
 
 The `scihub_core/` directory contains code copied from the upstream [scihub-cli](../scihub-cli) project. When bugs are fixed or features added to scihub-cli:
@@ -322,15 +321,14 @@ MIT License - See LICENSE file for details
 ## Credits
 
 - Built with [FastMCP](https://gofastmcp.com)
-- Uses [scihub-cli](https://github.com/your-username/scihub-cli) as core download engine
+- Uses [scihub-cli](https://github.com/Oxidane-bot/scihub-cli) as core download engine
 - Metadata from [Unpaywall](https://unpaywall.org) and [Crossref](https://www.crossref.org)
 
 ## Support
 
 For issues or questions:
 1. Check the Troubleshooting section above
-2. Review OpenSpec documentation in `openspec/changes/implement-mcp-server/`
-3. Open an issue on GitHub (include error messages and steps to reproduce)
+2. Open an issue on GitHub (include error messages and steps to reproduce)
 
 ---
 
