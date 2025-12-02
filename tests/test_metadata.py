@@ -2,17 +2,15 @@
 """Test paper_metadata tool with a real API call."""
 
 import asyncio
-import json
-import sys
 import os
+import sys
 
 # Set email before imports
-os.environ['SCIHUB_CLI_EMAIL'] = 'test@university.edu'
+os.environ["SCIHUB_CLI_EMAIL"] = "test@university.edu"
 
-sys.path.insert(0, 'src')
+sys.path.insert(0, "src")
 
 from paper_download_mcp.scihub_core.sources.unpaywall_source import UnpaywallSource
-from paper_download_mcp.scihub_core.core.doi_processor import DOIProcessor
 
 
 async def test_unpaywall_api():
@@ -25,7 +23,7 @@ async def test_unpaywall_api():
     print(f"\nQuerying metadata for DOI: {doi}")
 
     def _get_metadata():
-        unpaywall = UnpaywallSource(email=os.environ['SCIHUB_CLI_EMAIL'], timeout=10)
+        unpaywall = UnpaywallSource(email=os.environ["SCIHUB_CLI_EMAIL"], timeout=10)
         return unpaywall.get_metadata(doi)
 
     try:
@@ -34,7 +32,7 @@ async def test_unpaywall_api():
         if metadata:
             print("\n✓ Successfully retrieved metadata!")
             print("\nKey fields:")
-            for key in ['doi', 'title', 'year', 'journal', 'is_oa']:
+            for key in ["doi", "title", "year", "journal", "is_oa"]:
                 if key in metadata:
                     value = metadata[key]
                     if isinstance(value, str) and len(value) > 60:
@@ -50,6 +48,7 @@ async def test_unpaywall_api():
     except Exception as e:
         print(f"\n✗ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
