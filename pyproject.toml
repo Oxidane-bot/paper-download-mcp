@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-    { name = "Oxidane", email = "your.email@example.com" }
+    { name = "Oxidane", email = "1317078257maroon@gmail.com" }
 ]
 keywords = ["mcp", "academic-papers", "sci-hub", "unpaywall", "research"]
 classifiers = [
@@ -18,6 +18,13 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
+
+[project.urls]
+Homepage = "https://github.com/oxidane-universe/paper-download-mcp"
+Documentation = "https://github.com/oxidane-universe/paper-download-mcp#readme"
+Repository = "https://github.com/oxidane-universe/paper-download-mcp"
+Issues = "https://github.com/oxidane-universe/paper-download-mcp/issues"
+Changelog = "https://github.com/oxidane-universe/paper-download-mcp/blob/main/CHANGELOG.md"
 
 dependencies = [
     "mcp[cli]>=1.0.0",

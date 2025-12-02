@@ -1,5 +1,10 @@
 # Paper Download MCP Server
 
+[![PyPI version](https://badge.fury.io/py/paper-download-mcp.svg)](https://badge.fury.io/py/paper-download-mcp)
+[![Python Version](https://img.shields.io/pypi/pyversions/paper-download-mcp.svg)](https://pypi.org/project/paper-download-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Downloads](https://pepy.tech/badge/paper-download-mcp)](https://pepy.tech/project/paper-download-mcp)
+
 MCP server for downloading academic papers from multiple sources with intelligent routing.
 
 ## Features
