@@ -1,7 +1,7 @@
 """Metadata retrieval tool for academic papers."""
 
 import asyncio
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from ..formatters import format_metadata
 from ..scihub_core.core.doi_processor import DOIProcessor
