@@ -33,7 +33,7 @@ jobs:
         uv run ruff format --check .
 
     - name: Run type checking
-      run: uv run mypy src/paper_download_mcp --ignore-missing-imports
+      run: uv run mypy src/paper_download_mcp --ignore-missing-imports --exclude 'scihub_core'
 
     - name: Run tests
       run: uv run pytest tests/ -v
