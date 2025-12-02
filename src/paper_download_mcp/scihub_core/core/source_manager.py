@@ -3,9 +3,10 @@ Multi-source manager with intelligent routing.
 """
 
 from typing import List, Optional
+
 from ..sources.base import PaperSource
-from .year_detector import YearDetector
 from ..utils.logging import get_logger
+from .year_detector import YearDetector
 
 logger = get_logger(__name__)
 
@@ -13,10 +14,12 @@ logger = get_logger(__name__)
 class SourceManager:
     """Manages multiple paper sources with intelligent routing based on publication year."""
 
-    def __init__(self,
-                 sources: List[PaperSource],
-                 year_threshold: int = 2021,
-                 enable_year_routing: bool = True):
+    def __init__(
+        self,
+        sources: List[PaperSource],
+        year_threshold: int = 2021,
+        enable_year_routing: bool = True,
+    ):
         """
         Initialize source manager.
 
@@ -53,7 +56,9 @@ class SourceManager:
         # Build source chain based on year
         if year is None:
             # Unknown year: conservative strategy (OA first)
-            logger.info(f"[Router] Year unknown for {doi}, using conservative strategy: Unpaywall -> Sci-Hub")
+            logger.info(
+                f"[Router] Year unknown for {doi}, using conservative strategy: Unpaywall -> Sci-Hub"
+            )
             chain = self._build_chain(["Unpaywall", "Sci-Hub"])
 
         elif year < self.year_threshold:
@@ -63,7 +68,9 @@ class SourceManager:
 
         else:
             # New papers: Sci-Hub has zero coverage, OA first
-            logger.info(f"[Router] Year {year} >= {self.year_threshold}, using Unpaywall -> Sci-Hub")
+            logger.info(
+                f"[Router] Year {year} >= {self.year_threshold}, using Unpaywall -> Sci-Hub"
+            )
             chain = self._build_chain(["Unpaywall", "Sci-Hub"])
 
         return chain

@@ -4,10 +4,10 @@ User configuration file management.
 Handles ~/.scihub-cli/config.json for persistent user settings.
 """
 
-import os
 import json
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -18,8 +18,8 @@ class UserConfig:
 
     def __init__(self):
         # Use user's home directory (cross-platform)
-        self.config_dir = Path.home() / '.scihub-cli'
-        self.config_file = self.config_dir / 'config.json'
+        self.config_dir = Path.home() / ".scihub-cli"
+        self.config_file = self.config_dir / "config.json"
         self._config: Optional[Dict[str, Any]] = None
 
     def _ensure_config_dir(self):
@@ -39,7 +39,7 @@ class UserConfig:
             return self._config
 
         try:
-            with open(self.config_file, 'r', encoding='utf-8') as f:
+            with open(self.config_file, "r", encoding="utf-8") as f:
                 self._config = json.load(f)
             logger.debug(f"Loaded config from {self.config_file}")
             return self._config
@@ -57,7 +57,7 @@ class UserConfig:
         self._ensure_config_dir()
 
         try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
+            with open(self.config_file, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
             self._config = config
             logger.info(f"Saved config to {self.config_file}")
@@ -78,11 +78,11 @@ class UserConfig:
 
     def get_email(self) -> Optional[str]:
         """Get email from config file."""
-        return self.get('email')
+        return self.get("email")
 
     def set_email(self, email: str):
         """Set email in config file."""
-        self.set('email', email)
+        self.set("email", email)
 
     def exists(self) -> bool:
         """Check if config file exists."""

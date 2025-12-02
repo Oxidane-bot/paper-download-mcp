@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -12,11 +13,11 @@ class DownloadPaperInput(BaseModel):
         ...,
         min_length=5,
         max_length=500,
-        description="DOI or URL of the paper to download (e.g., '10.1038/nature12373' or 'https://doi.org/...')"
+        description="DOI or URL of the paper to download (e.g., '10.1038/nature12373' or 'https://doi.org/...')",
     )
     output_dir: Optional[str] = Field(
         default="./downloads",
-        description="Directory to save the downloaded PDF (default: './downloads')"
+        description="Directory to save the downloaded PDF (default: './downloads')",
     )
 
 
@@ -27,21 +28,18 @@ class BatchDownloadInput(BaseModel):
         ...,
         min_length=1,
         max_length=50,
-        description="List of DOIs or URLs to download (1-50 papers)"
+        description="List of DOIs or URLs to download (1-50 papers)",
     )
     output_dir: Optional[str] = Field(
         default="./downloads",
-        description="Directory to save the downloaded PDFs (default: './downloads')"
+        description="Directory to save the downloaded PDFs (default: './downloads')",
     )
 
 
 class GetMetadataInput(BaseModel):
     """Input schema for paper metadata retrieval tool."""
 
-    identifier: str = Field(
-        ...,
-        description="DOI or URL of the paper to retrieve metadata for"
-    )
+    identifier: str = Field(..., description="DOI or URL of the paper to retrieve metadata for")
 
 
 @dataclass

@@ -2,10 +2,12 @@
 Unpaywall source implementation.
 """
 
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Optional, Dict, Any
-from .base import PaperSource
+
 from ..utils.logging import get_logger
+from .base import PaperSource
 
 logger = get_logger(__name__)
 
@@ -25,9 +27,7 @@ class UnpaywallSource(PaperSource):
         self.timeout = timeout
         self.base_url = "https://api.unpaywall.org/v2"
         self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': f'scihub-cli/1.0 (mailto:{email})'
-        })
+        self.session.headers.update({"User-Agent": f"scihub-cli/1.0 (mailto:{email})"})
 
     @property
     def name(self) -> str:
@@ -35,7 +35,7 @@ class UnpaywallSource(PaperSource):
 
     def can_handle(self, doi: str) -> bool:
         """Unpaywall can query any DOI, but only returns OA articles."""
-        return doi.startswith('10.')
+        return doi.startswith("10.")
 
     def get_pdf_url(self, doi: str) -> Optional[str]:
         """
@@ -122,7 +122,7 @@ class UnpaywallSource(PaperSource):
                     "year": int(year) if year else None,
                     "journal": data.get("journal_name", ""),
                     "is_oa": data.get("is_oa", False),
-                    "oa_status": data.get("oa_status", "")
+                    "oa_status": data.get("oa_status", ""),
                 }
             else:
                 return None

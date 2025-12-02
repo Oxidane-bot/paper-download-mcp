@@ -5,35 +5,39 @@ Main Sci-Hub client providing high-level interface with multi-source support.
 import os
 import time
 from typing import List, Optional, Tuple
+
+from .config.settings import settings
+from .core.doi_processor import DOIProcessor
+from .core.downloader import FileDownloader
+from .core.file_manager import FileManager
 from .core.mirror_manager import MirrorManager
 from .core.parser import ContentParser
-from .core.doi_processor import DOIProcessor
-from .core.file_manager import FileManager
-from .core.downloader import FileDownloader
 from .core.source_manager import SourceManager
 from .network.session import BasicSession
 from .sources.scihub_source import SciHubSource
 from .sources.unpaywall_source import UnpaywallSource
-from .utils.retry import RetryConfig, retry_operation
 from .utils.logging import get_logger
-from .config.settings import settings
+from .utils.retry import RetryConfig, retry_operation
 
 logger = get_logger(__name__)
+
 
 class SciHubClient:
     """Main client interface with multi-source support (Sci-Hub + Unpaywall)."""
 
-    def __init__(self,
-                 output_dir: str = None,
-                 mirrors: List[str] = None,
-                 timeout: int = None,
-                 retries: int = None,
-                 email: str = None,
-                 mirror_manager: MirrorManager = None,
-                 parser: ContentParser = None,
-                 file_manager: FileManager = None,
-                 downloader: FileDownloader = None,
-                 source_manager: SourceManager = None):
+    def __init__(
+        self,
+        output_dir: str = None,
+        mirrors: List[str] = None,
+        timeout: int = None,
+        retries: int = None,
+        email: str = None,
+        mirror_manager: MirrorManager = None,
+        parser: ContentParser = None,
+        file_manager: FileManager = None,
+        downloader: FileDownloader = None,
+        source_manager: SourceManager = None,
+    ):
         """Initialize client with optional dependency injection."""
 
         # Configuration
@@ -58,40 +62,33 @@ class SciHubClient:
                 mirror_manager=self.mirror_manager,
                 parser=self.parser,
                 doi_processor=self.doi_processor,
-                downloader=self.downloader
+                downloader=self.downloader,
             )
-            unpaywall_source = UnpaywallSource(
-                email=self.email,
-                timeout=self.timeout
-            )
+            unpaywall_source = UnpaywallSource(email=self.email, timeout=self.timeout)
 
             # Create source manager with intelligent routing
             self.source_manager = SourceManager(
                 sources=[scihub_source, unpaywall_source],
                 year_threshold=settings.year_threshold,
-                enable_year_routing=settings.enable_year_routing
+                enable_year_routing=settings.enable_year_routing,
             )
         else:
             self.source_manager = source_manager
-    
+
     def download_paper(self, identifier: str) -> Optional[str]:
         """Download a paper given its DOI or URL."""
         doi = self.doi_processor.normalize_doi(identifier)
         logger.info(f"Downloading paper with identifier: {doi}")
-        
+
         def _download_operation():
             return self._download_single_paper(doi)
-        
+
         try:
-            return retry_operation(
-                _download_operation,
-                self.retry_config,
-                f"download paper {doi}"
-            )
+            return retry_operation(_download_operation, self.retry_config, f"download paper {doi}")
         except Exception as e:
             logger.error(f"Failed to download {doi} after all retries: {e}")
             return None
-    
+
     def _download_single_paper(self, doi: str) -> str:
         """Single download attempt using multi-source manager."""
         # Get PDF URL from any available source (intelligent routing)
@@ -111,10 +108,9 @@ class SciHubClient:
                 metadata = unpaywall[0].get_metadata(doi)
                 if metadata and metadata.get("title"):
                     from .metadata_utils import generate_filename_from_metadata
+
                     filename = generate_filename_from_metadata(
-                        metadata.get("title", ""),
-                        metadata.get("year", ""),
-                        doi
+                        metadata.get("title", ""), metadata.get("year", ""), doi
                     )
         except Exception as e:
             logger.debug(f"Could not get metadata from Unpaywall: {e}")
@@ -137,38 +133,41 @@ class SciHubClient:
         file_size = os.path.getsize(output_path)
         logger.info(f"Successfully downloaded {doi} ({file_size} bytes)")
         return output_path
-    
-    def download_from_file(self, input_file: str, parallel: int = None) -> List[Tuple[str, Optional[str]]]:
+
+    def download_from_file(
+        self, input_file: str, parallel: int = None
+    ) -> List[Tuple[str, Optional[str]]]:
         """Download papers from a file containing DOIs or URLs."""
         parallel = parallel or settings.parallel
-        
+
         # Read input file
         try:
-            with open(input_file, 'r') as f:
+            with open(input_file, "r") as f:
                 lines = f.readlines()
         except Exception as e:
             logger.error(f"Error reading input file: {e}")
             return []
-        
+
         # Filter out comments and empty lines
-        identifiers = [line.strip() for line in lines 
-                      if line.strip() and not line.strip().startswith('#')]
-        
+        identifiers = [
+            line.strip() for line in lines if line.strip() and not line.strip().startswith("#")
+        ]
+
         logger.info(f"Found {len(identifiers)} papers to download")
-        
+
         # Download each paper (sequential for now, can be parallelized later)
         results = []
         for i, identifier in enumerate(identifiers):
-            logger.info(f"Processing {i+1}/{len(identifiers)}: {identifier}")
+            logger.info(f"Processing {i + 1}/{len(identifiers)}: {identifier}")
             result = self.download_paper(identifier)
             results.append((identifier, result))
-            
+
             # Add a small delay between downloads
             if i < len(identifiers) - 1:
                 time.sleep(2)
-        
+
         # Print summary
         successful = sum(1 for _, result in results if result)
         logger.info(f"Downloaded {successful}/{len(identifiers)} papers")
-        
+
         return results

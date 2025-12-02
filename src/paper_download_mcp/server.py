@@ -1,6 +1,7 @@
 """FastMCP server entry point for paper download MCP server."""
 
 import os
+
 from mcp.server.fastmcp import FastMCP
 
 # Initialize FastMCP server
@@ -28,15 +29,15 @@ def _require_email() -> str:
             "To configure:\n"
             "1. Set environment variable: export PAPER_DOWNLOAD_EMAIL=your-email@university.edu\n"
             "2. Or add to Claude Desktop config:\n"
-            '   {\n'
+            "   {\n"
             '     "mcpServers": {\n'
             '       "paper-download": {\n'
             '         "command": "uvx",\n'
             '         "args": ["paper-download-mcp"],\n'
             '         "env": {"PAPER_DOWNLOAD_EMAIL": "your-email@university.edu"}\n'
-            '       }\n'
-            '     }\n'
-            '   }\n'
+            "       }\n"
+            "     }\n"
+            "   }\n"
         )
     return EMAIL
 

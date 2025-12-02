@@ -2,6 +2,7 @@
 
 import json
 from typing import List
+
 from .models import DownloadResult
 
 
@@ -79,8 +80,8 @@ def format_batch_results(results: List[DownloadResult]) -> str:
 
     # Summary statistics
     lines.append(f"**Total Papers**: {total}")
-    lines.append(f"**Successful**: {successful} ({successful/total*100:.1f}%)")
-    lines.append(f"**Failed**: {failed} ({failed/total*100:.1f}%)")
+    lines.append(f"**Successful**: {successful} ({successful / total * 100:.1f}%)")
+    lines.append(f"**Failed**: {failed} ({failed / total * 100:.1f}%)")
     lines.append(f"**Total Time**: {total_time:.2f}s")
     lines.append("")
 

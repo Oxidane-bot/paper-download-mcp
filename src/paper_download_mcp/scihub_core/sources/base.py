@@ -3,7 +3,7 @@ Abstract base class for paper sources.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 
 class PaperSource(ABC):

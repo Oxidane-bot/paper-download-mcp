@@ -2,11 +2,11 @@
 
 import asyncio
 
-from ..server import mcp, EMAIL
 from ..formatters import format_metadata
-from ..scihub_core.sources.unpaywall_source import UnpaywallSource
-from ..scihub_core.core.year_detector import YearDetector
 from ..scihub_core.core.doi_processor import DOIProcessor
+from ..scihub_core.core.year_detector import YearDetector
+from ..scihub_core.sources.unpaywall_source import UnpaywallSource
+from ..server import EMAIL, mcp
 
 
 @mcp.tool()
@@ -44,16 +44,14 @@ async def paper_metadata(identifier: str) -> str:
         This is a fast, read-only operation (typically <1 second). No files are
         downloaded or created.
     """
+
     def _get_metadata() -> dict:
         """Synchronous wrapper for metadata retrieval."""
         # Normalize the identifier to DOI
         doi_processor = DOIProcessor()
         doi = doi_processor.normalize_doi(identifier)
 
-        metadata = {
-            "doi": doi,
-            "available_sources": []
-        }
+        metadata = {"doi": doi, "available_sources": []}
 
         try:
             # Try Unpaywall first (primary metadata source)

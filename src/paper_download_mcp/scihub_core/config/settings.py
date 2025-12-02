@@ -4,13 +4,14 @@ Application settings and configuration for Sci-Hub CLI.
 
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict
+
 
 class Settings:
     """Centralized application settings."""
 
     # Default settings
-    DEFAULT_OUTPUT_DIR = './downloads'
+    DEFAULT_OUTPUT_DIR = "./downloads"
     DEFAULT_TIMEOUT = 30
     DEFAULT_RETRIES = 3
     DEFAULT_PARALLEL = 3
@@ -29,16 +30,18 @@ class Settings:
     ENABLE_YEAR_ROUTING = True  # Enable intelligent year-based source routing
 
     # Logging settings
-    LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
+    LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
     def __init__(self):
         """Initialize settings with config file and environment variable support."""
-        self.output_dir = os.getenv('SCIHUB_OUTPUT_DIR', self.DEFAULT_OUTPUT_DIR)
-        self.timeout = int(os.getenv('SCIHUB_TIMEOUT', self.DEFAULT_TIMEOUT))
-        self.retries = int(os.getenv('SCIHUB_RETRIES', self.DEFAULT_RETRIES))
-        self.parallel = int(os.getenv('SCIHUB_PARALLEL', self.DEFAULT_PARALLEL))
-        self.year_threshold = int(os.getenv('SCIHUB_YEAR_THRESHOLD', self.YEAR_THRESHOLD))
-        self.enable_year_routing = os.getenv('SCIHUB_ENABLE_ROUTING', str(self.ENABLE_YEAR_ROUTING)).lower() == 'true'
+        self.output_dir = os.getenv("SCIHUB_OUTPUT_DIR", self.DEFAULT_OUTPUT_DIR)
+        self.timeout = int(os.getenv("SCIHUB_TIMEOUT", self.DEFAULT_TIMEOUT))
+        self.retries = int(os.getenv("SCIHUB_RETRIES", self.DEFAULT_RETRIES))
+        self.parallel = int(os.getenv("SCIHUB_PARALLEL", self.DEFAULT_PARALLEL))
+        self.year_threshold = int(os.getenv("SCIHUB_YEAR_THRESHOLD", self.YEAR_THRESHOLD))
+        self.enable_year_routing = (
+            os.getenv("SCIHUB_ENABLE_ROUTING", str(self.ENABLE_YEAR_ROUTING)).lower() == "true"
+        )
 
         # Email configuration priority:
         # 1. PAPER_DOWNLOAD_EMAIL environment variable (primary for MCP server)
@@ -46,33 +49,39 @@ class Settings:
         # 3. Config file
         # 4. None (will prompt user)
         from .user_config import user_config
-        self.email = os.getenv('PAPER_DOWNLOAD_EMAIL') or os.getenv('SCIHUB_CLI_EMAIL') or user_config.get_email()
+
+        self.email = (
+            os.getenv("PAPER_DOWNLOAD_EMAIL")
+            or os.getenv("SCIHUB_CLI_EMAIL")
+            or user_config.get_email()
+        )
 
         # Logging configuration
         user_home = str(Path.home())
-        self.log_dir = os.path.join(user_home, '.scihub-cli', 'logs')
+        self.log_dir = os.path.join(user_home, ".scihub-cli", "logs")
         os.makedirs(self.log_dir, exist_ok=True)
-        self.log_file = os.path.join(self.log_dir, 'scihub-dl.log')
-    
+        self.log_file = os.path.join(self.log_dir, "scihub-dl.log")
+
     def get_dict(self) -> Dict[str, Any]:
         """Return settings as dictionary."""
         return {
-            'output_dir': self.output_dir,
-            'timeout': self.timeout,
-            'retries': self.retries,
-            'parallel': self.parallel,
-            'email': self.email,
-            'year_threshold': self.year_threshold,
-            'enable_year_routing': self.enable_year_routing,
-            'log_dir': self.log_dir,
-            'log_file': self.log_file,
+            "output_dir": self.output_dir,
+            "timeout": self.timeout,
+            "retries": self.retries,
+            "parallel": self.parallel,
+            "email": self.email,
+            "year_threshold": self.year_threshold,
+            "enable_year_routing": self.enable_year_routing,
+            "log_dir": self.log_dir,
+            "log_file": self.log_file,
         }
-    
+
     def update(self, **kwargs):
         """Update settings with provided values."""
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+
 
 # Global settings instance
 settings = Settings()
