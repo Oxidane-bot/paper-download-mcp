@@ -40,7 +40,7 @@ async def paper_download(identifier: str, output_dir: Optional[str] = "./downloa
 
         try:
             # Initialize client with configuration
-            client = SciHubClient(email=EMAIL, output_dir=output_dir or DEFAULT_OUTPUT_DIR)
+            client = SciHubClient(email=EMAIL, output_dir=output_dir or DEFAULT_OUTPUT_DIR)  # type: ignore
 
             # Download paper
             file_path = client.download_paper(identifier)
@@ -131,7 +131,7 @@ async def paper_batch_download(
     def _batch_download() -> list[DownloadResult]:
         """Synchronous wrapper for batch download operation."""
         results = []
-        client = SciHubClient(email=EMAIL, output_dir=output_dir or DEFAULT_OUTPUT_DIR)
+        client = SciHubClient(email=EMAIL, output_dir=output_dir or DEFAULT_OUTPUT_DIR)  # type: ignore
 
         for i, identifier in enumerate(identifiers):
             start_time = time.time()
