@@ -20,11 +20,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/oxidane-universe/paper-download-mcp"
-Documentation = "https://github.com/oxidane-universe/paper-download-mcp#readme"
-Repository = "https://github.com/oxidane-universe/paper-download-mcp"
-Issues = "https://github.com/oxidane-universe/paper-download-mcp/issues"
-Changelog = "https://github.com/oxidane-universe/paper-download-mcp/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Oxidane-bot/paper-download-mcp"
+Documentation = "https://github.com/Oxidane-bot/paper-download-mcp#readme"
+Repository = "https://github.com/Oxidane-bot/paper-download-mcp"
+Issues = "https://github.com/Oxidane-bot/paper-download-mcp/issues"
+Changelog = "https://github.com/Oxidane-bot/paper-download-mcp/blob/main/CHANGELOG.md"
 
 dependencies = [
     "mcp[cli]>=1.0.0",
