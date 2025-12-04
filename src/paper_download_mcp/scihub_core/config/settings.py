@@ -4,7 +4,7 @@ Application settings and configuration for Sci-Hub CLI.
 
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 class Settings:
@@ -44,17 +44,15 @@ class Settings:
         )
 
         # Email configuration priority:
-        # 1. PAPER_DOWNLOAD_EMAIL environment variable (primary for MCP server)
-        # 2. SCIHUB_CLI_EMAIL environment variable (for backward compatibility)
-        # 3. Config file
-        # 4. None (will prompt user)
+        # 1. Environment variable (for backward compatibility)
+        # 2. Config file
+        # 3. None (will prompt user)
         from .user_config import user_config
 
-        self.email = (
-            os.getenv("PAPER_DOWNLOAD_EMAIL")
-            or os.getenv("SCIHUB_CLI_EMAIL")
-            or user_config.get_email()
-        )
+        self.email = os.getenv("SCIHUB_CLI_EMAIL") or user_config.get_email()
+
+        # CORE API key (optional, improves rate limits)
+        self.core_api_key = os.getenv("CORE_API_KEY") or user_config.get_core_api_key()
 
         # Logging configuration
         user_home = str(Path.home())
@@ -62,7 +60,7 @@ class Settings:
         os.makedirs(self.log_dir, exist_ok=True)
         self.log_file = os.path.join(self.log_dir, "scihub-dl.log")
 
-    def get_dict(self) -> Dict[str, Any]:
+    def get_dict(self) -> dict[str, Any]:
         """Return settings as dictionary."""
         return {
             "output_dir": self.output_dir,

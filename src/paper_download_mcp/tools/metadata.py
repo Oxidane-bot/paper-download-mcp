@@ -1,7 +1,7 @@
 """Metadata retrieval tool for academic papers."""
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any
 
 from ..formatters import format_metadata
 from ..scihub_core.core.doi_processor import DOIProcessor
@@ -46,14 +46,14 @@ async def paper_metadata(identifier: str) -> str:
         downloaded or created.
     """
 
-    def _get_metadata() -> Dict[str, Any]:
+    def _get_metadata() -> dict[str, Any]:
         """Synchronous wrapper for metadata retrieval."""
         # Normalize the identifier to DOI
         doi_processor = DOIProcessor()
         doi = doi_processor.normalize_doi(identifier)
 
-        metadata: Dict[str, Any] = {"doi": doi, "available_sources": []}
-        available_sources: List[str] = []
+        metadata: dict[str, Any] = {"doi": doi, "available_sources": []}
+        available_sources: list[str] = []
 
         try:
             # Try Unpaywall first (primary metadata source)

@@ -3,7 +3,6 @@
 import asyncio
 import os
 import time
-from typing import Optional
 
 from ..formatters import format_batch_results, format_download_result
 from ..models import DownloadResult
@@ -12,7 +11,7 @@ from ..server import DEFAULT_OUTPUT_DIR, EMAIL, mcp
 
 
 @mcp.tool()
-async def paper_download(identifier: str, output_dir: Optional[str] = "./downloads") -> str:
+async def paper_download(identifier: str, output_dir: str | None = "./downloads") -> str:
     """
     Download a single academic paper by DOI or URL.
 
@@ -89,7 +88,7 @@ async def paper_download(identifier: str, output_dir: Optional[str] = "./downloa
 
 @mcp.tool()
 async def paper_batch_download(
-    identifiers: list[str], output_dir: Optional[str] = "./downloads"
+    identifiers: list[str], output_dir: str | None = "./downloads"
 ) -> str:
     """
     Download multiple academic papers sequentially with progress reporting.

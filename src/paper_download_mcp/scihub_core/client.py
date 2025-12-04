@@ -4,7 +4,6 @@ Main Sci-Hub client providing high-level interface with multi-source support.
 
 import os
 import time
-from typing import List, Optional, Tuple
 
 from .config.settings import settings
 from .core.doi_processor import DOIProcessor
@@ -14,10 +13,11 @@ from .core.mirror_manager import MirrorManager
 from .core.parser import ContentParser
 from .core.source_manager import SourceManager
 from .network.session import BasicSession
+from .sources.core_source import CORESource
 from .sources.scihub_source import SciHubSource
 from .sources.unpaywall_source import UnpaywallSource
 from .utils.logging import get_logger
-from .utils.retry import RetryConfig, retry_operation
+from .utils.retry import RetryConfig
 
 logger = get_logger(__name__)
 
@@ -28,7 +28,7 @@ class SciHubClient:
     def __init__(
         self,
         output_dir: str = None,
-        mirrors: List[str] = None,
+        mirrors: list[str] = None,
         timeout: int = None,
         retries: int = None,
         email: str = None,
@@ -65,65 +65,63 @@ class SciHubClient:
                 downloader=self.downloader,
             )
             unpaywall_source = UnpaywallSource(email=self.email, timeout=self.timeout)
+            core_source = CORESource(api_key=settings.core_api_key, timeout=self.timeout)
 
             # Create source manager with intelligent routing
+            # Source order: Unpaywall -> CORE -> Sci-Hub (for new papers)
+            # Source order: Sci-Hub -> Unpaywall -> CORE (for old papers)
             self.source_manager = SourceManager(
-                sources=[scihub_source, unpaywall_source],
+                sources=[scihub_source, unpaywall_source, core_source],
                 year_threshold=settings.year_threshold,
                 enable_year_routing=settings.enable_year_routing,
             )
         else:
             self.source_manager = source_manager
 
-    def download_paper(self, identifier: str) -> Optional[str]:
-        """Download a paper given its DOI or URL."""
-        doi = self.doi_processor.normalize_doi(identifier)
-        logger.info(f"Downloading paper with identifier: {doi}")
+    def download_paper(self, identifier: str) -> str | None:
+        """
+        Download a paper given its DOI or URL.
 
-        def _download_operation():
-            return self._download_single_paper(doi)
+        Uses fine-grained retry at lower layers (download, API calls).
+        No coarse-grained retry at this level.
+        """
+        doi = self.doi_processor.normalize_doi(identifier)
+        logger.info(f"Downloading paper: {doi}")
 
         try:
-            return retry_operation(_download_operation, self.retry_config, f"download paper {doi}")
+            return self._download_single_paper(doi)
         except Exception as e:
-            logger.error(f"Failed to download {doi} after all retries: {e}")
+            logger.error(f"Failed to download {doi}: {e}")
             return None
 
     def _download_single_paper(self, doi: str) -> str:
-        """Single download attempt using multi-source manager."""
-        # Get PDF URL from any available source (intelligent routing)
-        download_url = self.source_manager.get_pdf_url(doi)
+        """
+        Single download attempt using multi-source manager.
+
+        Gets URL and metadata in one pass to avoid duplicate API calls.
+        """
+        # Get PDF URL and metadata together (avoids duplicate API calls)
+        download_url, metadata = self.source_manager.get_pdf_url_with_metadata(doi)
 
         if not download_url:
             raise Exception(f"Could not find PDF URL for {doi} from any source")
 
         logger.debug(f"Download URL: {download_url}")
 
-        # Generate filename
-        # Try to get metadata from Unpaywall for better filenames
-        filename = None
-        try:
-            unpaywall = [s for s in self.source_manager.sources.values() if s.name == "Unpaywall"]
-            if unpaywall:
-                metadata = unpaywall[0].get_metadata(doi)
-                if metadata and metadata.get("title"):
-                    from .metadata_utils import generate_filename_from_metadata
-
-                    filename = generate_filename_from_metadata(
-                        metadata.get("title", ""), metadata.get("year", ""), doi
-                    )
-        except Exception as e:
-            logger.debug(f"Could not get metadata from Unpaywall: {e}")
-
-        # Fallback to DOI-based filename if metadata extraction failed
-        if not filename:
-            filename = self.file_manager.generate_filename(doi, html_content=None)
-
+        # Generate filename from metadata if available
+        filename = self._generate_filename(doi, metadata)
         output_path = self.file_manager.get_output_path(filename)
 
-        # Download the PDF
+        # Download the PDF (with automatic retry at download layer)
         success, error_msg = self.downloader.download_file(download_url, output_path)
         if not success:
+            # If Sci-Hub download failed, invalidate mirror cache
+            if "sci-hub" in download_url.lower():
+                logger.warning("Sci-Hub download failed, invalidating mirror cache")
+                scihub = [s for s in self.source_manager.sources.values() if s.name == "Sci-Hub"]
+                if scihub:
+                    scihub[0].mirror_manager.invalidate_cache()
+
             raise Exception(error_msg)
 
         # Validate file
@@ -134,15 +132,39 @@ class SciHubClient:
         logger.info(f"Successfully downloaded {doi} ({file_size} bytes)")
         return output_path
 
+    def _generate_filename(self, doi: str, metadata: dict | None) -> str:
+        """
+        Generate filename from metadata or DOI.
+
+        Args:
+            doi: The DOI
+            metadata: Optional metadata dict from source
+
+        Returns:
+            Generated filename
+        """
+        if metadata and metadata.get("title"):
+            try:
+                from .metadata_utils import generate_filename_from_metadata
+
+                return generate_filename_from_metadata(
+                    metadata.get("title", ""), metadata.get("year", ""), doi
+                )
+            except Exception as e:
+                logger.debug(f"Could not generate filename from metadata: {e}")
+
+        # Fallback to DOI-based filename
+        return self.file_manager.generate_filename(doi, html_content=None)
+
     def download_from_file(
         self, input_file: str, parallel: int = None
-    ) -> List[Tuple[str, Optional[str]]]:
+    ) -> list[tuple[str, str | None]]:
         """Download papers from a file containing DOIs or URLs."""
         parallel = parallel or settings.parallel
 
         # Read input file
         try:
-            with open(input_file, "r") as f:
+            with open(input_file, encoding="utf-8") as f:
                 lines = f.readlines()
         except Exception as e:
             logger.error(f"Error reading input file: {e}")

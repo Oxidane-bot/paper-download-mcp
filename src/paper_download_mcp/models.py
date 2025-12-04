@@ -1,7 +1,6 @@
 """Pydantic models for MCP tool inputs and internal data structures."""
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,7 +14,7 @@ class DownloadPaperInput(BaseModel):
         max_length=500,
         description="DOI or URL of the paper to download (e.g., '10.1038/nature12373' or 'https://doi.org/...')",
     )
-    output_dir: Optional[str] = Field(
+    output_dir: str | None = Field(
         default="./downloads",
         description="Directory to save the downloaded PDF (default: './downloads')",
     )
@@ -24,13 +23,13 @@ class DownloadPaperInput(BaseModel):
 class BatchDownloadInput(BaseModel):
     """Input schema for batch paper download tool."""
 
-    identifiers: List[str] = Field(
+    identifiers: list[str] = Field(
         ...,
         min_length=1,
         max_length=50,
         description="List of DOIs or URLs to download (1-50 papers)",
     )
-    output_dir: Optional[str] = Field(
+    output_dir: str | None = Field(
         default="./downloads",
         description="Directory to save the downloaded PDFs (default: './downloads')",
     )
@@ -48,13 +47,13 @@ class DownloadResult:
 
     doi: str
     success: bool
-    file_path: Optional[str] = None
-    file_size: Optional[int] = None
-    title: Optional[str] = None
-    year: Optional[int] = None
-    source: Optional[str] = None
-    download_time: Optional[float] = None
-    error: Optional[str] = None
+    file_path: str | None = None
+    file_size: int | None = None
+    title: str | None = None
+    year: int | None = None
+    source: str | None = None
+    download_time: float | None = None
+    error: str | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""

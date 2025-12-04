@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-12-04
+
+### Changed
+- **Core Update**: Synced `scihub_core` with upstream [scihub-cli v0.2.0](https://github.com/Oxidane-bot/scihub-cli) (commit d531071)
+  - Enhanced ruff configuration with additional rule sets (UP, B, C4, SIM)
+  - Fixed 327 linting issues across codebase
+  - Improved code quality with modern Python patterns
+- **Type Annotations**: Migrated from `typing.List/Dict/Optional` to modern syntax (`list`, `dict`, `X | None`)
+- **Code Style**: All code now formatted with consistent ruff style (double quotes, 100 char line length)
+
+### Added
+- New source implementations in scihub_core: CORE, OpenAlex, Semantic Scholar (available but not active)
+- curl_cffi bypass support for Sci-Hub mirror access
+- Intelligent rate limiting (2s delay per domain)
+- Comprehensive ruff format configuration
+
+### Fixed
+- Year type handling in Unpaywall metadata (int instead of str for proper comparison)
+- Import organization across all modules
+- Deprecated typing imports replaced with modern equivalents
+
+### Technical Notes
+- This update maintains 100% API compatibility
+- All MCP tools continue to work identically
+- Core improvements focused on code quality and maintainability
+
 ## [0.1.1] - 2024-12-02
 
 ### Changed

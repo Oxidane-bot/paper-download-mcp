@@ -1,7 +1,6 @@
 """Response formatters for MCP tool outputs."""
 
 import json
-from typing import List
 
 from .models import DownloadResult
 
@@ -61,7 +60,7 @@ def format_download_result(result: DownloadResult) -> str:
         return "\n".join(lines)
 
 
-def format_batch_results(results: List[DownloadResult]) -> str:
+def format_batch_results(results: list[DownloadResult]) -> str:
     """
     Format batch download results as Markdown summary.
 

@@ -4,7 +4,6 @@ File management and naming utilities.
 
 import os
 import re
-from typing import Optional
 
 from ..config.settings import settings
 from ..metadata_utils import extract_metadata, generate_filename_from_metadata
@@ -20,7 +19,7 @@ class FileManager:
         self.output_dir = output_dir or settings.output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def generate_filename(self, doi: str, html_content: Optional[str] = None) -> str:
+    def generate_filename(self, doi: str, html_content: str | None = None) -> str:
         """Generate a filename based on DOI and optionally paper metadata."""
         # Default filename based on DOI
         filename = self._clean_filename(doi.replace("/", "_"))

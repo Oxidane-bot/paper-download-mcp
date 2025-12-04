@@ -2,7 +2,6 @@
 Proxy rotation for IP obfuscation.
 """
 
-from typing import Dict, List, Optional, Set
 
 from ..utils.logging import get_logger
 
@@ -12,12 +11,12 @@ logger = get_logger(__name__)
 class ProxyRotator:
     """Handles proxy rotation for IP obfuscation"""
 
-    def __init__(self, proxy_list: Optional[List[str]] = None):
+    def __init__(self, proxy_list: list[str] | None = None):
         self.proxy_list = proxy_list or []
         self.current_proxy_index = 0
-        self.failed_proxies: Set[str] = set()
+        self.failed_proxies: set[str] = set()
 
-    def get_next_proxy(self) -> Optional[Dict[str, str]]:
+    def get_next_proxy(self) -> dict[str, str] | None:
         """Get next working proxy"""
         if not self.proxy_list:
             return None
