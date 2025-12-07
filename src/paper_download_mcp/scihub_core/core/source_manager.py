@@ -2,7 +2,6 @@
 Multi-source manager with intelligent routing.
 """
 
-
 from ..sources.base import PaperSource
 from ..utils.logging import get_logger
 from .year_detector import YearDetector

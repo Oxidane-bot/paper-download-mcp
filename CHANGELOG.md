@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2025-12-08
+
+### Changed
+- **Core Cleanup**: Synced `scihub_core` with upstream scihub-cli (commit 23f6ea6)
+  - Email is now optional - Unpaywall source only enabled when email is provided
+  - Sci-Hub and CORE sources work without email
+  - Simplified source initialization logic
+
+### Removed
+- **Unused Dependencies**: Removed cloudscraper, requests-html, fake-useragent
+- **Unused Source Files**: Removed OpenAlex and Semantic Scholar source implementations (0% success rate)
+- **Unused Network Files**: Removed bypass.py and proxy.py modules
+- **Unused Utilities**: Removed stealth_utils.py (experimental features)
+- Total reduction: ~1,356 lines of unused code removed
+
+### Fixed
+- Type annotations updated to use modern `X | None` syntax throughout scihub_core
+- Import statements optimized for better compatibility
+
+### Technical Notes
+- This update maintains 100% API compatibility
+- Email is still recommended for best results (enables Unpaywall source)
+- Codebase is now leaner and more maintainable
+
 ## [0.1.2] - 2025-12-04
 
 ### Changed

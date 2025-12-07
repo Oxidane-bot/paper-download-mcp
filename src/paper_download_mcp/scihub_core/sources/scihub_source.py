@@ -2,7 +2,6 @@
 Sci-Hub source implementation.
 """
 
-
 from ..core.doi_processor import DOIProcessor
 from ..core.downloader import FileDownloader
 from ..core.mirror_manager import MirrorManager
