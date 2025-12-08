@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-12-08
+
+### Added
+- **arXiv Source Support**: New ArxivSource for downloading preprints from arXiv
+  - Support multiple arXiv ID formats (YYMM.NNNNN, arxiv:YYMM.NNNNN)
+  - Automatic format detection and validation
+  - Free and open access to all arXiv papers
+  - Integrated into intelligent routing chain
+  - No API key or email required
+
+### Changed
+- **Improved Source Routing**: Enhanced intelligent routing with arXiv integration
+  - arXiv IDs detected → arXiv prioritized first
+  - Recent papers (≥2021): Unpaywall → arXiv → CORE → Sci-Hub
+  - Older papers (<2021): Sci-Hub → Unpaywall → arXiv → CORE
+  - Unknown year: Unpaywall → arXiv → CORE → Sci-Hub
+- **Updated Tool Documentation**: All MCP tool docstrings now mention arXiv support
+  - `paper_download`: Added arXiv ID examples and routing information
+  - `paper_batch_download`: Added arXiv support in description
+  - `paper_metadata`: Added arXiv metadata fetching information
+
+### Technical Notes
+- Better coverage for recent CS/Physics/Math preprints
+- arXiv metadata fetched from official arXiv API
+- 100% API compatible with previous versions
+
 ## [0.1.3] - 2025-12-08
 
 ### Changed

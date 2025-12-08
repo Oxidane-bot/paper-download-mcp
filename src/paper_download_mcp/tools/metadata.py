@@ -13,37 +13,16 @@ from ..server import EMAIL, mcp
 @mcp.tool()
 async def paper_metadata(identifier: str) -> str:
     """
-    Retrieve metadata for an academic paper without downloading the PDF.
+    Get paper metadata without downloading (fast, <1s).
 
-    This tool queries metadata APIs (Unpaywall, Crossref) to get paper information
-    including title, authors, year, journal, and open access status. It's useful
-    for:
-    - Checking paper availability before downloading
-    - Getting paper details for citation purposes
-    - Verifying DOI correctness
-    - Quick paper lookups
+    Sources: Unpaywall, Crossref, arXiv APIs
+    Returns: title, authors, year, journal, OA status, available sources
 
     Args:
-        identifier: DOI (e.g., '10.1038/nature12373') or URL (e.g., 'https://doi.org/...')
+        identifier: DOI, arXiv ID, or URL
 
     Returns:
-        JSON-formatted string containing paper metadata:
-        - doi: Normalized DOI
-        - title: Paper title
-        - year: Publication year
-        - authors: List of author names
-        - journal: Journal name
-        - is_oa: Open access status (boolean)
-        - available_sources: List of sources where paper can be downloaded
-        - [Additional fields from Unpaywall/Crossref APIs]
-
-    Examples:
-        - paper_metadata("10.1038/nature12373")
-        - paper_metadata("https://doi.org/10.1126/science.1234567")
-
-    Note:
-        This is a fast, read-only operation (typically <1 second). No files are
-        downloaded or created.
+        JSON with metadata fields
     """
 
     def _get_metadata() -> dict[str, Any]:

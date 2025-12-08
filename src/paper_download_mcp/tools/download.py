@@ -13,24 +13,17 @@ from ..server import DEFAULT_OUTPUT_DIR, EMAIL, mcp
 @mcp.tool()
 async def paper_download(identifier: str, output_dir: str | None = "./downloads") -> str:
     """
-    Download a single academic paper by DOI or URL.
+    Download academic paper by DOI, arXiv ID, or URL.
 
-    This tool downloads papers from multiple sources (Sci-Hub, Unpaywall) with
-    intelligent routing based on publication year:
-    - Papers published before 2021: Try Sci-Hub first, fallback to Unpaywall
-    - Papers published 2021 or later: Try Unpaywall first, fallback to Sci-Hub
+    Sources: Sci-Hub, Unpaywall, arXiv, CORE (intelligent routing by year)
+    Formats: DOI (10.xxx), arXiv (2301.00001), URLs
 
     Args:
-        identifier: DOI (e.g., '10.1038/nature12373') or URL (e.g., 'https://doi.org/...')
-        output_dir: Directory to save the PDF (default: './downloads')
+        identifier: DOI, arXiv ID, or URL
+        output_dir: Save directory (default: './downloads')
 
     Returns:
-        Markdown-formatted string with download details (file path, metadata, source)
-        or error message with suggestions if download fails
-
-    Examples:
-        - paper_download("10.1038/nature12373")
-        - paper_download("https://doi.org/10.1038/s41586-021-03380-y", "/path/to/papers")
+        Markdown with file path, metadata, source, or error message
     """
 
     def _download() -> DownloadResult:
@@ -91,29 +84,17 @@ async def paper_batch_download(
     identifiers: list[str], output_dir: str | None = "./downloads"
 ) -> str:
     """
-    Download multiple academic papers sequentially with progress reporting.
+    Download multiple papers sequentially (1-50 max).
 
-    This tool downloads a list of papers one by one, reporting progress after each
-    download. It includes automatic rate limiting (2-second delay between downloads)
-    to comply with API usage policies.
+    Sources: Sci-Hub, Unpaywall, arXiv, CORE
+    Rate limit: 2-second delay between downloads
 
     Args:
-        identifiers: List of DOIs or URLs to download (1-50 papers maximum)
-        output_dir: Directory to save the PDFs (default: './downloads')
+        identifiers: List of DOIs, arXiv IDs, or URLs
+        output_dir: Save directory (default: './downloads')
 
     Returns:
-        Markdown-formatted summary with:
-        - Total statistics (count, success rate, total time)
-        - List of successful downloads (with file paths and sources)
-        - List of failed downloads (with error messages)
-
-    Examples:
-        - paper_batch_download(["10.1038/nature12373", "10.1126/science.1234567"])
-        - paper_batch_download(dois_list, "/path/to/papers")
-
-    Note:
-        Downloads are sequential (not parallel) to respect API rate limits.
-        Each download has a 2-second delay to avoid overwhelming servers.
+        Markdown summary with statistics, successes, and failures
     """
     # Validate input size
     if not identifiers:
