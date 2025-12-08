@@ -15,8 +15,8 @@ async def paper_download(identifier: str, output_dir: str | None = "./downloads"
     """
     Download academic paper by DOI, arXiv ID, or URL.
 
-    Sources: Sci-Hub, Unpaywall, arXiv, CORE (intelligent routing by year)
-    Formats: DOI (10.xxx), arXiv (2301.00001), URLs
+    Prioritizes open access sources (Unpaywall, arXiv, CORE) before Sci-Hub.
+    Sources: Unpaywall (OA), arXiv (OA), CORE (OA), Sci-Hub (last resort)
 
     Args:
         identifier: DOI, arXiv ID, or URL
@@ -24,6 +24,11 @@ async def paper_download(identifier: str, output_dir: str | None = "./downloads"
 
     Returns:
         Markdown with file path, metadata, source, or error message
+
+    Examples:
+        paper_download("10.1038/nature12373")  # DOI
+        paper_download("2301.00001")  # arXiv ID
+        paper_download("https://arxiv.org/abs/2301.00001")  # URL
     """
 
     def _download() -> DownloadResult:
@@ -84,10 +89,9 @@ async def paper_batch_download(
     identifiers: list[str], output_dir: str | None = "./downloads"
 ) -> str:
     """
-    Download multiple papers sequentially (1-50 max).
+    Download multiple papers sequentially (1-50 max, 2s delay).
 
-    Sources: Sci-Hub, Unpaywall, arXiv, CORE
-    Rate limit: 2-second delay between downloads
+    Prioritizes open access sources (Unpaywall, arXiv, CORE) before Sci-Hub.
 
     Args:
         identifiers: List of DOIs, arXiv IDs, or URLs
@@ -95,6 +99,10 @@ async def paper_batch_download(
 
     Returns:
         Markdown summary with statistics, successes, and failures
+
+    Examples:
+        paper_batch_download(["10.1038/nature12373", "2301.00001"])
+        paper_batch_download(dois, "/papers")
     """
     # Validate input size
     if not identifiers:
