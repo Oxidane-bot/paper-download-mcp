@@ -23,6 +23,10 @@ async def paper_metadata(identifier: str) -> str:
 
     Returns:
         JSON with metadata fields
+
+    Examples:
+        paper_metadata("10.1038/nature12373")  # DOI
+        paper_metadata("2301.00001")  # arXiv ID
     """
 
     def _get_metadata() -> dict[str, Any]:
