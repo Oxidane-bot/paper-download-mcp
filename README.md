@@ -11,8 +11,15 @@ MCP server for downloading academic papers from multiple sources with intelligen
 
 ## Features
 
-- **Multi-Source Support**: Downloads from Sci-Hub and Unpaywall with automatic fallback
-- **Intelligent Routing**: Year-based source selection (<2021 → Sci-Hub, ≥2021 → Unpaywall)
+- **Multi-Source Support**: Downloads from multiple sources with automatic fallback
+  - **arXiv**: Prioritized for preprints (free, no API key needed)
+  - **Unpaywall**: For open access papers (requires email)
+  - **Direct PDF**: Handles direct PDF URLs
+  - **PMC**: PubMed Central articles
+  - **HTML Landing**: Extracts PDF links from article pages
+  - **Sci-Hub**: Fallback for older papers (coverage-driven)
+  - **CORE**: Additional OA fallback
+- **Intelligent Routing**: Priority-based source selection with year-aware routing
 - **3 MCP Tools**:
   - `paper_download` - Download single paper by DOI or URL
   - `paper_batch_download` - Download multiple papers with progress reporting
@@ -144,17 +151,18 @@ Get metadata for 10.1038/nature12373
 
 ### Intelligent Source Routing
 
-The server uses year-based routing to maximize download success:
+The server uses priority routing to keep fast sources first:
 
-1. **Publication year < 2021**: Try Sci-Hub first (frozen in 2020), fallback to Unpaywall
-2. **Publication year ≥ 2021**: Try Unpaywall first (legal OA), fallback to Sci-Hub
-3. **Year unknown**: Conservative approach (Unpaywall → Sci-Hub)
+1. **arXiv IDs/URLs**: Try arXiv first, then OA sources if needed
+2. **DOIs (year < 2021)**: OA sources first, Sci-Hub last
+3. **DOIs (year ≥ 2021)**: OA sources only (Sci-Hub has no coverage)
+4. **Year unknown**: OA sources first, Sci-Hub last
 
 ### Download Process
 
 1. Normalize DOI from URL/identifier
-2. Detect publication year via Crossref API
-3. Route to appropriate source based on year
+2. Detect publication year via Crossref API (DOIs only)
+3. Route to appropriate source based on priority/year
 4. Download PDF with retry on failure
 5. Validate file (PDF header, size check)
 6. Generate filename: `[YYYY] - Title.pdf`
@@ -195,7 +203,7 @@ The server uses year-based routing to maximize download success:
 **Solutions:**
 - Check internet connection
 - Retry (mirror selection is cached after first success)
-- Single papers typically complete in <10 seconds
+- Single papers typically complete in <15 seconds
 
 ### Downloaded file is corrupted
 

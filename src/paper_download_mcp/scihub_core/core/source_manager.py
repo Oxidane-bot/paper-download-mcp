@@ -4,6 +4,8 @@ Multi-source manager with intelligent routing and parallel querying.
 
 import contextlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional
+from urllib.parse import urlparse
 
 from ..sources.base import PaperSource
 from ..utils.logging import get_logger
@@ -13,6 +15,7 @@ logger = get_logger(__name__)
 # Configuration for parallel source queries
 PARALLEL_QUERY_WORKERS = 4  # Max concurrent source queries
 PARALLEL_QUERY_ENABLED = True  # Can be disabled for debugging
+SLOW_SOURCES = {"Sci-Hub"}
 
 
 class SourceManager:
@@ -48,15 +51,16 @@ class SourceManager:
             self._year_detector = YearDetector()
         return self._year_detector
 
-    def get_source_chain(self, doi: str, year: int | None = None) -> list[PaperSource]:
+    def get_source_chain(self, doi: str, year: Optional[int] = None) -> list[PaperSource]:
         """
         Get the optimal source chain for a given identifier based on publication year.
 
         Strategy:
-        - arXiv IDs: arXiv first (direct match)
-        - Papers before 2021: Sci-Hub first (high coverage), then OA sources
-        - Papers 2021+: OA sources first (Sci-Hub has no coverage), then Sci-Hub
-        - Unknown year: Conservative strategy (OA sources first)
+        - URLs: Direct PDF -> PMC -> HTML Landing (URL-specific handlers)
+        - arXiv identifiers: arXiv first (direct match)
+        - Papers before 2021: OA sources first, Sci-Hub fallback for coverage
+        - Papers 2021+: OA sources only (skip Sci-Hub)
+        - Unknown year: OA sources first with Sci-Hub fallback
 
         Args:
             doi: The DOI or identifier to route
@@ -65,36 +69,44 @@ class SourceManager:
         Returns:
             Ordered list of sources to try
         """
-        # Check if it's an arXiv ID - prioritize arXiv source
+        # Check if it's an arXiv identifier - prioritize arXiv source
         if "arXiv" in self.sources and self.sources["arXiv"].can_handle(doi):
-            logger.info("[Router] Detected arXiv ID, using arXiv -> Unpaywall -> CORE -> Sci-Hub")
+            logger.info(
+                "[Router] Detected arXiv identifier, using arXiv -> Unpaywall -> CORE -> Sci-Hub"
+            )
             return self._build_chain(["arXiv", "Unpaywall", "CORE", "Sci-Hub"])
 
-        # Detect year if not provided and routing is enabled
-        if year is None and self.enable_year_routing:
+        # If the input is a URL, prefer URL-specific handlers first.
+        parsed = urlparse(doi)
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            logger.info("[Router] Detected URL input, using Direct PDF -> PMC -> HTML Landing")
+            return self._build_chain(["Direct PDF", "PMC", "HTML Landing"])
+
+        # Detect year if not provided and routing is enabled (Crossref only supports DOIs)
+        if year is None and self.enable_year_routing and doi.startswith("10."):
             year = self._get_year_smart(doi)
 
         # Build source chain based on year
         if year is None:
-            # Unknown year: conservative strategy (OA first)
+            # Unknown year: conservative strategy (OA first with Sci-Hub fallback)
             logger.info(
-                f"[Router] Year unknown for {doi}, using conservative strategy: Unpaywall -> arXiv -> CORE -> Sci-Hub"
+                f"[Router] Year unknown for {doi}, using Unpaywall -> arXiv -> CORE -> Sci-Hub"
             )
             chain = self._build_chain(["Unpaywall", "arXiv", "CORE", "Sci-Hub"])
 
         elif year < self.year_threshold:
-            # Old papers: Sci-Hub has excellent coverage
+            # Old papers: OA first for speed, Sci-Hub fallback for coverage
             logger.info(
-                f"[Router] Year {year} < {self.year_threshold}, using Sci-Hub -> Unpaywall -> arXiv -> CORE"
-            )
-            chain = self._build_chain(["Sci-Hub", "Unpaywall", "arXiv", "CORE"])
-
-        else:
-            # New papers: Sci-Hub has zero coverage, OA first
-            logger.info(
-                f"[Router] Year {year} >= {self.year_threshold}, using Unpaywall -> arXiv -> CORE -> Sci-Hub"
+                f"[Router] Year {year} < {self.year_threshold}, using Unpaywall -> arXiv -> CORE -> Sci-Hub"
             )
             chain = self._build_chain(["Unpaywall", "arXiv", "CORE", "Sci-Hub"])
+
+        else:
+            # New papers: Sci-Hub has no coverage, OA only
+            logger.info(
+                f"[Router] Year {year} >= {self.year_threshold}, using Unpaywall -> arXiv -> CORE"
+            )
+            chain = self._build_chain(["Unpaywall", "arXiv", "CORE"])
 
         return chain
 
@@ -116,7 +128,7 @@ class SourceManager:
                 logger.warning(f"[Router] Source '{name}' not available, skipping")
         return chain
 
-    def get_pdf_url(self, doi: str, year: int | None = None) -> str | None:
+    def get_pdf_url(self, doi: str, year: Optional[int] = None) -> Optional[str]:
         """
         Get PDF URL trying sources in optimal order.
 
@@ -127,27 +139,12 @@ class SourceManager:
         Returns:
             PDF URL if found, None otherwise
         """
-        chain = self.get_source_chain(doi, year)
-
-        for source in chain:
-            try:
-                logger.info(f"[Router] Trying {source.name} for {doi}...")
-                pdf_url = source.get_pdf_url(doi)
-                if pdf_url:
-                    logger.info(f"[Router] SUCCESS: Found PDF via {source.name}")
-                    return pdf_url
-                else:
-                    logger.info(f"[Router] {source.name} did not find PDF, trying next source...")
-            except Exception as e:
-                logger.warning(f"[Router] {source.name} error: {e}, trying next source...")
-                continue
-
-        logger.warning(f"[Router] All sources failed for {doi}")
-        return None
+        pdf_url, _metadata = self.get_pdf_url_with_metadata(doi, year)
+        return pdf_url
 
     def get_pdf_url_with_metadata(
-        self, doi: str, year: int | None = None
-    ) -> tuple[str | None, dict | None]:
+        self, doi: str, year: Optional[int] = None
+    ) -> tuple[Optional[str], Optional[dict]]:
         """
         Get PDF URL and metadata in one pass (avoids duplicate API calls).
 
@@ -163,15 +160,45 @@ class SourceManager:
         chain = self.get_source_chain(doi, year)
 
         if PARALLEL_QUERY_ENABLED and len(chain) > 1:
-            return self._query_sources_parallel(doi, chain)
-        else:
-            return self._query_sources_sequential(doi, chain)
+            return self._query_sources_fast_then_slow(doi, chain)
+        return self._query_sources_sequential(doi, chain)
+
+    def _query_sources_fast_then_slow(
+        self, doi: str, chain: list[PaperSource]
+    ) -> tuple[Optional[str], Optional[dict]]:
+        """
+        Query fast sources in parallel first, then fall back to slow sources sequentially.
+
+        This avoids slow providers delaying successful results from faster sources.
+        """
+        fast_chain = [source for source in chain if source.name not in SLOW_SOURCES]
+        slow_chain = [source for source in chain if source.name in SLOW_SOURCES]
+
+        if fast_chain:
+            if len(fast_chain) > 1:
+                pdf_url, metadata = self._query_sources_parallel(doi, fast_chain)
+            else:
+                pdf_url, metadata = self._query_sources_sequential(doi, fast_chain)
+            if pdf_url:
+                return pdf_url, metadata
+
+        if slow_chain:
+            logger.info(
+                f"[Router] Fast sources exhausted, trying slow sources: {[s.name for s in slow_chain]}"
+            )
+            return self._query_sources_sequential(doi, slow_chain)
+
+        return None, None
 
     def _query_sources_sequential(
         self, doi: str, chain: list[PaperSource]
-    ) -> tuple[str | None, dict | None]:
+    ) -> tuple[Optional[str], Optional[dict]]:
         """Query sources sequentially (fallback mode)."""
         for source in chain:
+            if not source.can_handle(doi):
+                logger.debug(f"[Router] Skipping {source.name} (cannot handle identifier)")
+                continue
+
             try:
                 logger.info(f"[Router] Trying {source.name} for {doi}...")
                 pdf_url = source.get_pdf_url(doi)
@@ -198,7 +225,7 @@ class SourceManager:
 
     def _query_sources_parallel(
         self, doi: str, chain: list[PaperSource]
-    ) -> tuple[str | None, dict | None]:
+    ) -> tuple[Optional[str], Optional[dict]]:
         """
         Query multiple sources in parallel, return first successful result.
 
@@ -221,12 +248,16 @@ class SourceManager:
         workers = min(PARALLEL_QUERY_WORKERS, len(chain))
 
         # Track results by source name for priority handling
-        results: dict[str, tuple[str | None, dict | None]] = {}
+        results: dict[str, tuple[Optional[str], Optional[dict]]] = {}
         completed_sources = set()
 
-        def query_single_source(source: PaperSource) -> tuple[str, str | None, dict | None]:
+        def query_single_source(source: PaperSource) -> tuple[str, Optional[str], Optional[dict]]:
             """Query a single source, return (source_name, pdf_url, metadata)."""
             try:
+                if not source.can_handle(doi):
+                    logger.debug(f"[Router] Skipping {source.name} (cannot handle identifier)")
+                    return source.name, None, None
+
                 logger.debug(f"[Router] Starting parallel query to {source.name}...")
                 pdf_url = source.get_pdf_url(doi)
 
@@ -240,12 +271,12 @@ class SourceManager:
                 logger.debug(f"[Router] {source.name} parallel query error: {e}")
                 return source.name, None, None
 
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            # Submit all source queries
-            future_to_source = {
-                executor.submit(query_single_source, source): source for source in chain
-            }
+        executor = ThreadPoolExecutor(max_workers=workers)
+        future_to_source = {
+            executor.submit(query_single_source, source): source for source in chain
+        }
 
+        try:
             # Process results as they complete
             for future in as_completed(future_to_source):
                 source = future_to_source[future]
@@ -280,6 +311,9 @@ class SourceManager:
 
                 except Exception as e:
                     logger.debug(f"[Router] Future exception for {source.name}: {e}")
+        finally:
+            # Avoid blocking on lower-priority/slow sources once we have enough information.
+            executor.shutdown(wait=False, cancel_futures=True)
 
         # All futures done, return best result by priority
         for source in chain:
@@ -292,7 +326,7 @@ class SourceManager:
         logger.warning(f"[Router] All sources failed for {doi} (parallel)")
         return None, None
 
-    def _get_year_smart(self, doi: str) -> int | None:
+    def _get_year_smart(self, doi: str) -> Optional[int]:
         """
         Get publication year using smart lookup strategy.
 
@@ -303,10 +337,11 @@ class SourceManager:
 
         This avoids redundant API calls when Unpaywall data is already available.
         """
-        # 1. Try Unpaywall cache first (if source exists and has cache)
+        # 1. Try Unpaywall cache first (if source exists and exposes cached metadata)
         unpaywall = self.sources.get("Unpaywall")
-        if unpaywall and hasattr(unpaywall, "_metadata_cache") and doi in unpaywall._metadata_cache:
-            cached = unpaywall._metadata_cache[doi]
+        get_cached_metadata = getattr(unpaywall, "get_cached_metadata", None)
+        if callable(get_cached_metadata):
+            cached = get_cached_metadata(doi)
             if cached and cached.get("year"):
                 year = cached["year"]
                 logger.debug(f"[Router] Year {year} from Unpaywall cache for {doi}")

@@ -3,6 +3,7 @@ Core downloader implementation with single responsibility.
 """
 
 import time
+from typing import Optional
 
 import requests
 
@@ -22,7 +23,7 @@ logger = get_logger(__name__)
 class FileDownloader:
     """Handles pure file downloading operations."""
 
-    def __init__(self, session: requests.Session | None = None, timeout: int = None):
+    def __init__(self, session: Optional[requests.Session] = None, timeout: int = None):
         self.session = session or BasicSession(timeout or settings.timeout)
         self.timeout = timeout or settings.timeout
 
@@ -33,7 +34,7 @@ class FileDownloader:
         self._last_bypass_time = {}  # domain -> timestamp
         self._bypass_delay = 2.0  # seconds between bypass requests to same domain
 
-    def download_file(self, url: str, output_path: str) -> tuple[bool, str | None]:
+    def download_file(self, url: str, output_path: str) -> tuple[bool, Optional[str]]:
         """
         Download a file from URL to output path with automatic retry.
 
@@ -80,7 +81,44 @@ class FileDownloader:
             logger.error(f"Download failed after all retries: {error_msg}")
             return False, error_msg
 
-    def _download_once(self, url: str, output_path: str) -> tuple[bool, str | None]:
+    def probe_pdf_url(self, url: str) -> bool:
+        """
+        Probe a URL to see if it appears to serve a PDF without downloading it.
+
+        Returns:
+            True if the response looks like a PDF, False otherwise.
+        """
+        response = None
+        try:
+            response = self.session.get(url, timeout=self.timeout, stream=True)
+
+            if response.status_code == 403:
+                logger.debug(f"Probe got 403 for {url}; treating as potentially valid PDF")
+                return True
+            if response.status_code != 200:
+                return False
+
+            content_type = response.headers.get("Content-Type", "")
+            if "html" in content_type.lower():
+                return False
+
+            header = b""
+            for chunk in response.iter_content(chunk_size=4):
+                header += chunk
+                if len(header) >= 4:
+                    break
+
+            return header[:4] == b"%PDF"
+        except Exception as e:
+            logger.debug(f"Probe failed for {url}: {e}")
+            return False
+        finally:
+            if response is not None:
+                close = getattr(response, "close", None)
+                if callable(close):
+                    close()
+
+    def _download_once(self, url: str, output_path: str) -> tuple[bool, Optional[str]]:
         """
         Single download attempt with error classification.
 
@@ -159,7 +197,7 @@ class FileDownloader:
             # Unknown errors are considered retryable (conservative)
             raise RetryableError(f"Download error: {e}") from e
 
-    def _download_with_curl_cffi(self, url: str, output_path: str) -> tuple[bool, str | None]:
+    def _download_with_curl_cffi(self, url: str, output_path: str) -> tuple[bool, Optional[str]]:
         """
         Bypass CDN protection using curl_cffi with browser impersonation.
 
@@ -240,7 +278,7 @@ class FileDownloader:
             logger.debug(f"[curl_cffi] Download failed: {e}")
             return False, str(e)
 
-    def get_page_content(self, url: str) -> tuple[str | None, int | None]:
+    def get_page_content(self, url: str) -> tuple[Optional[str], Optional[int]]:
         """
         Get HTML content from a URL with automatic curl_cffi fallback on 403.
 
@@ -265,7 +303,7 @@ class FileDownloader:
             logger.error(f"Error fetching page content: {e}")
             return None, None
 
-    def _get_page_with_curl_cffi(self, url: str) -> tuple[str | None, int | None]:
+    def _get_page_with_curl_cffi(self, url: str) -> tuple[Optional[str], Optional[int]]:
         """
         Fetch page content using curl_cffi with browser impersonation.
 

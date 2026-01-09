@@ -2,7 +2,7 @@
 Unpaywall source implementation.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
@@ -36,7 +36,7 @@ class UnpaywallSource(PaperSource):
         self.session.headers.update({"User-Agent": f"scihub-cli/1.0 (mailto:{email})"})
 
         # Metadata caching
-        self._metadata_cache: dict[str, dict | None] = {}
+        self._metadata_cache: dict[str, Optional[dict]] = {}
 
         # Retry configuration for API calls
         self.retry_config = APIRetryConfig()
@@ -49,7 +49,7 @@ class UnpaywallSource(PaperSource):
         """Unpaywall can query any DOI, but only returns OA articles."""
         return doi.startswith("10.")
 
-    def get_pdf_url(self, doi: str) -> str | None:
+    def get_pdf_url(self, doi: str) -> Optional[str]:
         """
         Get PDF download URL from Unpaywall using cached metadata.
 
@@ -79,7 +79,7 @@ class UnpaywallSource(PaperSource):
             logger.warning(f"[Unpaywall] No PDF URL in OA location for {doi}")
             return None
 
-    def get_metadata(self, doi: str) -> dict[str, Any] | None:
+    def get_metadata(self, doi: str) -> Optional[dict[str, Any]]:
         """
         Get metadata from Unpaywall (returns cached if available).
 
@@ -92,7 +92,11 @@ class UnpaywallSource(PaperSource):
         """
         return self._fetch_metadata(doi)
 
-    def _fetch_metadata(self, doi: str) -> dict[str, str] | None:
+    def get_cached_metadata(self, doi: str) -> Optional[dict[str, Any]]:
+        """Return cached metadata without triggering a network request."""
+        return self._metadata_cache.get(doi)
+
+    def _fetch_metadata(self, doi: str) -> Optional[dict[str, str]]:
         """
         Fetch and cache metadata from Unpaywall API.
 
@@ -128,7 +132,7 @@ class UnpaywallSource(PaperSource):
             # Don't cache transient failures that exhausted retries
             return None
 
-    def _fetch_from_api(self, doi: str) -> dict[str, str] | None:
+    def _fetch_from_api(self, doi: str) -> Optional[dict[str, str]]:
         """
         Single API fetch attempt with error classification.
 

@@ -3,6 +3,8 @@ arXiv source implementation.
 """
 
 import re
+from typing import Optional
+from urllib.parse import urlparse
 
 import requests
 
@@ -33,7 +35,7 @@ class ArxivSource(PaperSource):
         self.session.headers.update({"User-Agent": "scihub-cli/1.0"})
 
         # Metadata caching
-        self._metadata_cache: dict[str, dict | None] = {}
+        self._metadata_cache: dict[str, Optional[dict]] = {}
 
         # Retry configuration for API calls
         self.retry_config = APIRetryConfig()
@@ -55,7 +57,7 @@ class ArxivSource(PaperSource):
         arxiv_id = self._extract_arxiv_id(identifier)
         return arxiv_id is not None
 
-    def get_pdf_url(self, identifier: str) -> str | None:
+    def get_pdf_url(self, identifier: str) -> Optional[str]:
         """
         Get PDF download URL from arXiv.
 
@@ -85,7 +87,7 @@ class ArxivSource(PaperSource):
             logger.warning(f"[arXiv] Failed to verify PDF for {arxiv_id}: {e}")
             return None
 
-    def get_metadata(self, identifier: str) -> dict[str, str] | None:
+    def get_metadata(self, identifier: str) -> Optional[dict[str, str]]:
         """
         Get metadata from arXiv API.
 
@@ -125,7 +127,7 @@ class ArxivSource(PaperSource):
             # Don't cache transient failures that exhausted retries
             return None
 
-    def _fetch_from_api(self, arxiv_id: str) -> dict[str, str] | None:
+    def _fetch_from_api(self, arxiv_id: str) -> Optional[dict[str, str]]:
         """
         Single API fetch attempt with error classification.
 
@@ -201,7 +203,7 @@ class ArxivSource(PaperSource):
             logger.warning(f"[arXiv] Error parsing response for {arxiv_id}: {e}")
             raise PermanentError(f"Parse error: {e}") from e
 
-    def _extract_arxiv_id(self, identifier: str) -> str | None:
+    def _extract_arxiv_id(self, identifier: str) -> Optional[str]:
         """
         Extract arXiv ID from various formats.
 
@@ -219,6 +221,20 @@ class ArxivSource(PaperSource):
         """
         # Remove 'arxiv:' prefix if present (case insensitive)
         clean = re.sub(r"^arxiv:", "", identifier, flags=re.IGNORECASE).strip()
+
+        # Extract from arXiv URLs (abs/pdf/e-print)
+        parsed = urlparse(clean)
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            domain = parsed.netloc.lower()
+            if "arxiv.org" in domain:
+                path = parsed.path.lstrip("/")
+                for prefix in ("abs/", "pdf/", "e-print/"):
+                    if path.startswith(prefix):
+                        candidate = path[len(prefix) :]
+                        if candidate.endswith(".pdf"):
+                            candidate = candidate[: -len(".pdf")]
+                        clean = candidate
+                        break
 
         # New format (2015+): YYMM.NNNNN or YYMM.NNNNNvN
         if re.match(r"^\d{4}\.\d{4,5}(v\d+)?$", clean):

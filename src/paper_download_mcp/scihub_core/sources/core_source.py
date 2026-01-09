@@ -6,23 +6,25 @@ thousands of repositories and journals worldwide.
 """
 
 import time
+from typing import Optional
 
 import requests
 
 from ..utils.logging import get_logger
 from ..utils.retry import RetryConfig
+from .base import PaperSource
 
 logger = get_logger(__name__)
 
 
-class CORESource:
+class CORESource(PaperSource):
     """
     CORE API client for finding and downloading open access papers.
 
     API Documentation: https://core.ac.uk/documentation/api
     """
 
-    def __init__(self, api_key: str | None = None, timeout: int = 30):
+    def __init__(self, api_key: Optional[str] = None, timeout: int = 30):
         """
         Initialize CORE API client.
 
@@ -30,7 +32,6 @@ class CORESource:
             api_key: CORE API key (optional, but recommended for better rate limits)
             timeout: Request timeout in seconds
         """
-        self.name = "CORE"
         self.api_key = api_key
         self.timeout = timeout
         self.base_url = "https://api.core.ac.uk/v3"
@@ -47,7 +48,15 @@ class CORESource:
         # Retry configuration
         self.retry_config = RetryConfig(max_attempts=2, base_delay=2.0)
 
-    def get_metadata(self, doi: str) -> dict | None:
+    @property
+    def name(self) -> str:
+        return "CORE"
+
+    def can_handle(self, doi: str) -> bool:
+        """CORE searches by DOI and only returns OA content."""
+        return doi.startswith("10.")
+
+    def get_metadata(self, doi: str) -> Optional[dict]:
         """
         Get metadata for a paper by DOI.
 
@@ -75,7 +84,7 @@ class CORESource:
             logger.error(f"[CORE] Failed to fetch metadata for {doi}: {e}")
             return None
 
-    def _fetch_from_api(self, doi: str) -> dict | None:
+    def _fetch_from_api(self, doi: str) -> Optional[dict]:
         """
         Fetch metadata from CORE API with retry logic.
 
@@ -112,7 +121,7 @@ class CORESource:
 
                     return {
                         "title": work.get("title", ""),
-                        "year": str(work.get("yearPublished", "")),
+                        "year": work.get("yearPublished"),
                         "is_oa": True,  # CORE only has OA content
                         "pdf_url": work.get("downloadUrl"),
                         "core_id": work.get("id"),
@@ -149,7 +158,7 @@ class CORESource:
 
         return None
 
-    def get_pdf_url(self, doi: str) -> str | None:
+    def get_pdf_url(self, doi: str) -> Optional[str]:
         """
         Get PDF download URL for a paper.
 
@@ -175,7 +184,7 @@ class CORESource:
             logger.debug(f"[CORE] No PDF URL available for {doi}")
             return None
 
-    def get_pdf_url_with_metadata(self, doi: str) -> tuple[str | None, dict | None]:
+    def get_pdf_url_with_metadata(self, doi: str) -> tuple[Optional[str], Optional[dict]]:
         """
         Get both PDF URL and metadata in one call.
 

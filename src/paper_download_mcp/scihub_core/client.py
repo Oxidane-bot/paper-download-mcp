@@ -15,6 +15,9 @@ from .core.source_manager import SourceManager
 from .network.session import BasicSession
 from .sources.arxiv_source import ArxivSource
 from .sources.core_source import CORESource
+from .sources.direct_pdf_source import DirectPDFSource
+from .sources.html_landing_source import HTMLLandingSource
+from .sources.pmc_source import PMCSource
 from .sources.scihub_source import SciHubSource
 from .sources.unpaywall_source import UnpaywallSource
 from .utils.logging import get_logger
@@ -67,6 +70,11 @@ class SciHubClient:
                     downloader=self.downloader,
                 )
             ]
+
+            # Direct URL sources: enable direct PDF and PMC handling for URL inputs
+            sources.insert(0, HTMLLandingSource(downloader=self.downloader))
+            sources.insert(0, PMCSource(downloader=self.downloader))
+            sources.insert(0, DirectPDFSource())
 
             # arXiv: Free and open, always enabled (high priority for preprints)
             sources.insert(0, ArxivSource(timeout=self.timeout))
