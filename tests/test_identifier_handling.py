@@ -13,6 +13,7 @@ from paper_download_mcp.scihub_core.sources.core_source import CORESource
 def test_normalize_doi_strips_prefix():
     assert DOIProcessor.normalize_doi("doi:10.1000/xyz") == "10.1000/xyz"
     assert DOIProcessor.normalize_doi("DOI: 10.1000/xyz") == "10.1000/xyz"
+    assert DOIProcessor.normalize_doi("doi 10.1000/xyz") == "10.1000/xyz"
 
 
 def test_normalize_doi_removes_internal_whitespace():

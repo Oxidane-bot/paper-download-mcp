@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DOI normalization now strips internal whitespace from inputs (including wrapped URLs).
 - `paper_metadata` year detection now uses `YearDetector.get_year` for API compatibility.
 
+## [0.3.2] - 2026-01-12
+
+### Fixed
+- DOI normalization now removes `doi ` prefixes before stripping internal whitespace.
+
 ## [0.1.4] - 2025-12-08
 
 ### Added
