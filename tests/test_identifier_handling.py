@@ -15,6 +15,14 @@ def test_normalize_doi_strips_prefix():
     assert DOIProcessor.normalize_doi("DOI: 10.1000/xyz") == "10.1000/xyz"
 
 
+def test_normalize_doi_removes_internal_whitespace():
+    assert (
+        DOIProcessor.normalize_doi("https://arxiv.org/\n abs/1706.03762")
+        == "https://arxiv.org/abs/1706.03762"
+    )
+    assert DOIProcessor.normalize_doi("10.1000/ xyz") == "10.1000/xyz"
+
+
 def test_arxiv_urls_are_recognized():
     source = ArxivSource()
     assert source.can_handle("https://arxiv.org/abs/2301.00001")

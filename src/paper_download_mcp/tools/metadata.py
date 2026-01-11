@@ -6,6 +6,7 @@ from typing import Any
 from ..formatters import format_metadata
 from ..scihub_core.core.doi_processor import DOIProcessor
 from ..scihub_core.core.year_detector import YearDetector
+from ..scihub_core.sources.arxiv_source import ArxivSource
 from ..scihub_core.sources.unpaywall_source import UnpaywallSource
 from ..server import EMAIL, mcp
 
@@ -31,12 +32,28 @@ async def paper_metadata(identifier: str) -> str:
 
     def _get_metadata() -> dict[str, Any]:
         """Synchronous wrapper for metadata retrieval."""
-        # Normalize the identifier to DOI
+        # Normalize the identifier to DOI (also strips whitespace)
         doi_processor = DOIProcessor()
         doi = doi_processor.normalize_doi(identifier)
 
         metadata: dict[str, Any] = {"doi": doi, "available_sources": []}
         available_sources: list[str] = []
+
+        # Handle arXiv identifiers directly (skip Crossref/Unpaywall)
+        arxiv_source = ArxivSource(timeout=10)
+        if arxiv_source.can_handle(doi):
+            try:
+                arxiv_data = arxiv_source.get_metadata(doi)
+                if arxiv_data:
+                    metadata.update(arxiv_data)
+                    available_sources.append("arXiv")
+                else:
+                    metadata["error"] = "Metadata not available from arXiv. Please verify the ID."
+            except Exception as e:
+                metadata["arxiv_error"] = str(e)
+
+            metadata["available_sources"] = available_sources
+            return metadata
 
         try:
             # Try Unpaywall first (primary metadata source)
@@ -63,7 +80,7 @@ async def paper_metadata(identifier: str) -> str:
         if "year" not in metadata or not metadata["year"]:
             try:
                 year_detector = YearDetector()
-                year = year_detector.detect(doi)  # type: ignore
+                year = year_detector.get_year(doi)
                 if year:
                     metadata["year"] = year
 
