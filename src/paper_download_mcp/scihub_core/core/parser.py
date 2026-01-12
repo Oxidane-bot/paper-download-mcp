@@ -3,6 +3,7 @@ HTML content parsing and URL extraction.
 """
 
 import re
+from typing import Optional
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
@@ -18,7 +19,7 @@ class ContentParser:
     def __init__(self):
         pass
 
-    def extract_download_url(self, html_content: str, base_mirror: str) -> str | None:
+    def extract_download_url(self, html_content: str, base_mirror: str) -> Optional[str]:
         """Extract the PDF download URL from Sci-Hub HTML."""
         soup = BeautifulSoup(html_content, "html.parser")
 
@@ -42,12 +43,28 @@ class ContentParser:
             logger.debug(f"Found download iframe: {src}")
             return self._clean_url(src)
 
+        # Look for other iframes pointing directly to PDFs
+        iframe_pdf = soup.find("iframe", src=re.compile(r"(?:/downloads/|\.pdf)(?:\?|#|$)", re.I))
+        if iframe_pdf and iframe_pdf.get("src"):
+            src = iframe_pdf.get("src")
+            src = self._fix_url_format(src, base_mirror)
+            logger.debug(f"Found download iframe (generic): {src}")
+            return self._clean_url(src)
+
         # Look for download button
         download_button = soup.find("a", string=re.compile(r"download", re.I))
         if download_button and download_button.get("href"):
             href = download_button.get("href")
             href = self._fix_url_format(href, base_mirror)
             logger.debug(f"Found download button: {href}")
+            return self._clean_url(href)
+
+        # Look for direct PDF links
+        pdf_link = soup.find("a", href=re.compile(r"(?:/downloads/|\.pdf)(?:\?|#|$)", re.I))
+        if pdf_link and pdf_link.get("href"):
+            href = pdf_link.get("href")
+            href = self._fix_url_format(href, base_mirror)
+            logger.debug(f"Found direct PDF link: {href}")
             return self._clean_url(href)
 
         # Look for embed tags
@@ -84,6 +101,7 @@ class ContentParser:
 
     def _fix_url_format(self, url: str, mirror: str) -> str:
         """Fix common URL formatting issues."""
+        url = self._unescape_url(url).strip()
         # Handle relative URLs (starting with /)
         if url.startswith("/"):
             parsed_mirror = urlparse(mirror)
@@ -106,6 +124,7 @@ class ContentParser:
 
     def _clean_url(self, url: str) -> str:
         """Clean the URL by removing fragments and adding download parameter."""
+        url = self._unescape_url(url).strip()
         # Remove the fragment (anything after #)
         if "#" in url:
             url = url.split("#")[0]
@@ -115,3 +134,10 @@ class ContentParser:
             url += ("&" if "?" in url else "?") + "download=true"
 
         return url
+
+    def _unescape_url(self, url: str) -> str:
+        """Normalize backslash-escaped URLs from Sci-Hub HTML."""
+        if "\\" not in url:
+            return url
+        url = url.replace("\\/", "/")
+        return url.replace("\\", "")

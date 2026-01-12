@@ -9,6 +9,7 @@ This is the backward-compatible interface that uses the new modular architecture
 import argparse
 import sys
 
+from . import __version__
 from .client import SciHubClient
 from .config.settings import settings
 from .config.user_config import user_config
@@ -18,8 +19,9 @@ from .utils.logging import get_logger, setup_logging
 def main():
     """Main entry point for the script."""
     parser = argparse.ArgumentParser(
+        prog="scihub-cli",
         description="Multi-source academic paper downloader.",
-        epilog="v0.2.0 - Sources: Sci-Hub, Unpaywall, CORE | Features: intelligent routing",
+        epilog=f"v{__version__} - Sources: Sci-Hub, Unpaywall, arXiv, CORE | Features: intelligent routing",
     )
 
     parser.add_argument("input_file", help="Text file containing DOIs or URLs (one per line)")
@@ -49,11 +51,11 @@ def main():
         "--parallel",
         type=int,
         default=settings.parallel,
-        help="Reserved; downloads are processed sequentially",
+        help="Number of parallel downloads (threads)",
     )
     parser.add_argument("--email", help="Email for Unpaywall API (saves to config file)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
-    parser.add_argument("--version", action="version", version="scihub-cli v0.2.0")
+    parser.add_argument("--version", action="version", version=f"scihub-cli v{__version__}")
 
     args = parser.parse_args()
 
@@ -84,11 +86,12 @@ def main():
         results = client.download_from_file(args.input_file, args.parallel)
 
         # Print failures if any
-        failures = [(identifier, result) for identifier, result in results if not result]
+        failures = [result for result in results if not result.success]
         if failures:
             logger.warning("The following papers failed to download:")
-            for identifier, _ in failures:
-                logger.warning(f"  - {identifier}")
+            for result in failures:
+                error = result.error or "Unknown error"
+                logger.warning(f"  - {result.identifier}: {error}")
 
         return 0 if len(failures) == 0 else 1
 

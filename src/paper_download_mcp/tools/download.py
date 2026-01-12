@@ -3,11 +3,36 @@
 import asyncio
 import os
 import time
-
 from ..formatters import format_batch_results, format_download_result
 from ..models import DownloadResult
 from ..scihub_core.client import SciHubClient
+from ..scihub_core.models import DownloadResult as CoreDownloadResult
 from ..server import DEFAULT_OUTPUT_DIR, EMAIL, mcp
+
+
+def _format_core_result(core_result: CoreDownloadResult) -> DownloadResult:
+    """Convert scihub-core download results into MCP-friendly results."""
+    doi = core_result.normalized_identifier or core_result.identifier
+    file_path = os.path.abspath(core_result.file_path) if core_result.file_path else None
+    file_size = core_result.file_size
+    if file_path and file_size is None and os.path.exists(file_path):
+        file_size = os.path.getsize(file_path)
+
+    source = core_result.source
+    if not source and isinstance(core_result.metadata, dict):
+        source = core_result.metadata.get("source")
+
+    return DownloadResult(
+        doi=doi,
+        success=core_result.success,
+        file_path=file_path,
+        file_size=file_size,
+        title=core_result.title,
+        year=core_result.year,
+        source=source,
+        download_time=core_result.download_time,
+        error=core_result.error,
+    )
 
 
 @mcp.tool()
@@ -33,49 +58,16 @@ async def paper_download(identifier: str, output_dir: str | None = "./downloads"
 
     def _download() -> DownloadResult:
         """Synchronous wrapper for download operation."""
-        start_time = time.time()
-
         try:
             # Initialize client with configuration
             client = SciHubClient(email=EMAIL, output_dir=output_dir or DEFAULT_OUTPUT_DIR)  # type: ignore
 
             # Download paper
-            file_path = client.download_paper(identifier)
-
-            if not file_path:
-                return DownloadResult(
-                    doi=identifier, success=False, error="Paper not found in any source"
-                )
-
-            # Get file details
-            file_size = os.path.getsize(file_path)
-            download_time = time.time() - start_time
-
-            # Try to extract metadata for better display
-            title = None
-            year = None
-            source = None
-
-            # Check which source was used
-            # We can infer from the source manager's last used source
-            # For now, we'll mark as successful without detailed source info
-            # (can be enhanced later if needed)
-
-            return DownloadResult(
-                doi=identifier,
-                success=True,
-                file_path=os.path.abspath(file_path),
-                file_size=file_size,
-                title=title,
-                year=year,
-                source=source,
-                download_time=download_time,
-            )
+            core_result = client.download_paper(identifier)
+            return _format_core_result(core_result)
 
         except Exception as e:
-            return DownloadResult(
-                doi=identifier, success=False, error=str(e), download_time=time.time() - start_time
-            )
+            return DownloadResult(doi=identifier, success=False, error=str(e))
 
     # Run synchronous download in thread pool
     result = await asyncio.to_thread(_download)
@@ -122,40 +114,15 @@ async def paper_batch_download(
         client = SciHubClient(email=EMAIL, output_dir=output_dir or DEFAULT_OUTPUT_DIR)  # type: ignore
 
         for i, identifier in enumerate(identifiers):
-            start_time = time.time()
-
             try:
-                # Download paper
-                file_path = client.download_paper(identifier)
-
-                if not file_path:
-                    results.append(
-                        DownloadResult(
-                            doi=identifier, success=False, error="Paper not found in any source"
-                        )
-                    )
-                else:
-                    # Get file details
-                    file_size = os.path.getsize(file_path)
-                    download_time = time.time() - start_time
-
-                    results.append(
-                        DownloadResult(
-                            doi=identifier,
-                            success=True,
-                            file_path=os.path.abspath(file_path),
-                            file_size=file_size,
-                            download_time=download_time,
-                        )
-                    )
-
+                core_result = client.download_paper(identifier)
+                results.append(_format_core_result(core_result))
             except Exception as e:
                 results.append(
                     DownloadResult(
                         doi=identifier,
                         success=False,
                         error=str(e),
-                        download_time=time.time() - start_time,
                     )
                 )
 

@@ -6,7 +6,7 @@ Handles ~/.scihub-cli/config.json for persistent user settings.
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from ..utils.logging import get_logger
 
@@ -20,7 +20,7 @@ class UserConfig:
         # Use user's home directory (cross-platform)
         self.config_dir = Path.home() / ".scihub-cli"
         self.config_file = self.config_dir / "config.json"
-        self._config: dict[str, Any] | None = None
+        self._config: Optional[dict[str, Any]] = None
 
     def _ensure_config_dir(self):
         """Create config directory if it doesn't exist."""
@@ -76,7 +76,7 @@ class UserConfig:
         config[key] = value
         self.save(config)
 
-    def get_email(self) -> str | None:
+    def get_email(self) -> Optional[str]:
         """Get email from config file."""
         return self.get("email")
 
@@ -84,7 +84,7 @@ class UserConfig:
         """Set email in config file."""
         self.set("email", email)
 
-    def get_core_api_key(self) -> str | None:
+    def get_core_api_key(self) -> Optional[str]:
         """Get CORE API key from config file."""
         return self.get("core_api_key")
 

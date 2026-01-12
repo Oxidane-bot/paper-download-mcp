@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-01-12
+
+### Added
+- Synced scihub-core download results with upstream progress-aware models.
+- Added `curl-cffi` dependency for 403 bypass support in downloads.
+
+### Changed
+- Updated mirror list and source routing metadata to match upstream scihub-cli.
+- Download tools now populate title/year/source from core download results.
+
+## [0.3.2] - 2026-01-12
+
+### Fixed
+- DOI normalization now removes `doi ` prefixes before stripping internal whitespace.
+
 ## [0.3.1] - 2026-01-12
 
 ### Added
@@ -13,11 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - DOI normalization now strips internal whitespace from inputs (including wrapped URLs).
 - `paper_metadata` year detection now uses `YearDetector.get_year` for API compatibility.
-
-## [0.3.2] - 2026-01-12
-
-### Fixed
-- DOI normalization now removes `doi ` prefixes before stripping internal whitespace.
 
 ## [0.1.4] - 2025-12-08
 
