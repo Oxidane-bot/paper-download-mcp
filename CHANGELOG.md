@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Synced scihub-core mirror failover and download retry logic from upstream.
 
+## [0.5.1] - 2026-02-09
+
+### Changed
+- Clarified download tool docstrings to explicitly state Markdown output directory behavior (`md_output_dir`, default `<output_dir>/md`).
+
 ## [0.5.0] - 2026-02-09
 
 ### Added

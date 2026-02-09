@@ -48,7 +48,9 @@ async def paper_download(
     md_output_dir: str | None = None,
 ) -> str:
     """
-    Download academic paper by DOI, arXiv ID, or URL.
+    Download one academic paper by DOI, arXiv ID, or URL.
+    Optionally converts the downloaded PDF to Markdown and stores the `.md` file in
+    `md_output_dir` (default: `<output_dir>/md`).
 
     Prioritizes open access sources (Unpaywall, arXiv, CORE) before Sci-Hub.
     Sources: Unpaywall (OA), arXiv (OA), CORE (OA), Sci-Hub (last resort)
@@ -102,6 +104,8 @@ async def paper_batch_download(
 ) -> str:
     """
     Download multiple papers sequentially (1-50 max, 2s delay).
+    Optionally converts each PDF to Markdown and stores `.md` files in `md_output_dir`
+    (default: `<output_dir>/md`).
 
     Prioritizes open access sources (Unpaywall, arXiv, CORE) before Sci-Hub.
 
