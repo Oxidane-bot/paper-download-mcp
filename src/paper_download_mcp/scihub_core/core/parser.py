@@ -3,7 +3,6 @@ HTML content parsing and URL extraction.
 """
 
 import re
-from typing import Optional
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
@@ -19,7 +18,7 @@ class ContentParser:
     def __init__(self):
         pass
 
-    def extract_download_url(self, html_content: str, base_mirror: str) -> Optional[str]:
+    def extract_download_url(self, html_content: str, base_mirror: str) -> str | None:
         """Extract the PDF download URL from Sci-Hub HTML."""
         soup = BeautifulSoup(html_content, "html.parser")
 

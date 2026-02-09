@@ -2,8 +2,6 @@
 Sci-Hub source implementation.
 """
 
-from typing import Optional
-
 from ..core.doi_processor import DOIProcessor
 from ..core.downloader import FileDownloader
 from ..core.mirror_manager import MirrorManager
@@ -46,7 +44,7 @@ class SciHubSource(PaperSource):
         """Sci-Hub is only attempted for DOIs (avoids unnecessary requests for non-DOI IDs)."""
         return identifier.startswith("10.")
 
-    def get_pdf_url(self, doi: str) -> Optional[str]:
+    def get_pdf_url(self, doi: str) -> str | None:
         """
         Get PDF download URL from Sci-Hub.
 
@@ -83,7 +81,7 @@ class SciHubSource(PaperSource):
             self.mirror_manager.invalidate_cache()
             return None
 
-    def _get_download_url_from_mirror(self, mirror: str, doi: str) -> tuple[Optional[str], bool]:
+    def _get_download_url_from_mirror(self, mirror: str, doi: str) -> tuple[str | None, bool]:
         """Attempt to extract a PDF URL from a specific Sci-Hub mirror."""
         formatted_doi = self.doi_processor.format_doi_for_url(doi) if doi.startswith("10.") else doi
         scihub_url = f"{mirror}/{formatted_doi}"

@@ -3,7 +3,7 @@ Core downloader implementation with single responsibility.
 """
 
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import requests
 
@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 class FileDownloader:
     """Handles pure file downloading operations."""
 
-    def __init__(self, session: Optional[requests.Session] = None, timeout: int = None):
+    def __init__(self, session: requests.Session | None = None, timeout: int = None):
         self.session = session or BasicSession(timeout or settings.timeout)
         self.timeout = timeout or settings.timeout
 
@@ -38,8 +38,8 @@ class FileDownloader:
         self,
         url: str,
         output_path: str,
-        progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
-    ) -> tuple[bool, Optional[str]]:
+        progress_callback: Callable[[int, int | None], None] | None = None,
+    ) -> tuple[bool, str | None]:
         """
         Download a file from URL to output path with automatic retry.
 
@@ -139,8 +139,8 @@ class FileDownloader:
         self,
         url: str,
         output_path: str,
-        progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
-    ) -> tuple[bool, Optional[str]]:
+        progress_callback: Callable[[int, int | None], None] | None = None,
+    ) -> tuple[bool, str | None]:
         """
         Single download attempt with error classification.
 
@@ -229,8 +229,8 @@ class FileDownloader:
         self,
         url: str,
         output_path: str,
-        progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
-    ) -> tuple[bool, Optional[str]]:
+        progress_callback: Callable[[int, int | None], None] | None = None,
+    ) -> tuple[bool, str | None]:
         """Bypass Cloudflare challenges using cloudscraper."""
         try:
             import cloudscraper
@@ -288,8 +288,8 @@ class FileDownloader:
         self,
         url: str,
         output_path: str,
-        progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
-    ) -> tuple[bool, Optional[str]]:
+        progress_callback: Callable[[int, int | None], None] | None = None,
+    ) -> tuple[bool, str | None]:
         """
         Bypass CDN protection using curl_cffi with browser impersonation.
 
@@ -372,7 +372,7 @@ class FileDownloader:
             logger.debug(f"[curl_cffi] Download failed: {e}")
             return False, str(e)
 
-    def get_page_content(self, url: str) -> tuple[Optional[str], Optional[int]]:
+    def get_page_content(self, url: str) -> tuple[str | None, int | None]:
         """
         Get HTML content from a URL with automatic curl_cffi fallback on 403.
 
@@ -403,7 +403,7 @@ class FileDownloader:
             logger.error(f"Error fetching page content: {e}")
             return None, None
 
-    def _get_page_with_cloudscraper(self, url: str) -> tuple[Optional[str], Optional[int]]:
+    def _get_page_with_cloudscraper(self, url: str) -> tuple[str | None, int | None]:
         """
         Fetch page content using cloudscraper to solve JS challenges.
 
@@ -427,7 +427,7 @@ class FileDownloader:
             logger.debug(f"[cloudscraper] Page fetch failed: {e}")
             return None, None
 
-    def _get_page_with_curl_cffi(self, url: str) -> tuple[Optional[str], Optional[int]]:
+    def _get_page_with_curl_cffi(self, url: str) -> tuple[str | None, int | None]:
         """
         Fetch page content using curl_cffi with browser impersonation.
 

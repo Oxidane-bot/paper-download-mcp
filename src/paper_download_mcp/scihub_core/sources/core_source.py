@@ -6,7 +6,6 @@ thousands of repositories and journals worldwide.
 """
 
 import time
-from typing import Optional
 
 import requests
 
@@ -24,7 +23,7 @@ class CORESource(PaperSource):
     API Documentation: https://core.ac.uk/documentation/api
     """
 
-    def __init__(self, api_key: Optional[str] = None, timeout: int = 30):
+    def __init__(self, api_key: str | None = None, timeout: int = 30):
         """
         Initialize CORE API client.
 
@@ -56,7 +55,7 @@ class CORESource(PaperSource):
         """CORE searches by DOI and only returns OA content."""
         return doi.startswith("10.")
 
-    def get_metadata(self, doi: str) -> Optional[dict]:
+    def get_metadata(self, doi: str) -> dict | None:
         """
         Get metadata for a paper by DOI.
 
@@ -84,7 +83,7 @@ class CORESource(PaperSource):
             logger.error(f"[CORE] Failed to fetch metadata for {doi}: {e}")
             return None
 
-    def _fetch_from_api(self, doi: str) -> Optional[dict]:
+    def _fetch_from_api(self, doi: str) -> dict | None:
         """
         Fetch metadata from CORE API with retry logic.
 
@@ -158,7 +157,7 @@ class CORESource(PaperSource):
 
         return None
 
-    def get_pdf_url(self, doi: str) -> Optional[str]:
+    def get_pdf_url(self, doi: str) -> str | None:
         """
         Get PDF download URL for a paper.
 
@@ -184,7 +183,7 @@ class CORESource(PaperSource):
             logger.debug(f"[CORE] No PDF URL available for {doi}")
             return None
 
-    def get_pdf_url_with_metadata(self, doi: str) -> tuple[Optional[str], Optional[dict]]:
+    def get_pdf_url_with_metadata(self, doi: str) -> tuple[str | None, dict | None]:
         """
         Get both PDF URL and metadata in one call.
 

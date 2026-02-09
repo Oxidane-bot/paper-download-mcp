@@ -4,7 +4,6 @@ Multi-source manager with intelligent routing and parallel querying.
 
 import contextlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 from urllib.parse import urlparse
 
 from ..sources.base import PaperSource
@@ -51,7 +50,7 @@ class SourceManager:
             self._year_detector = YearDetector()
         return self._year_detector
 
-    def get_source_chain(self, doi: str, year: Optional[int] = None) -> list[PaperSource]:
+    def get_source_chain(self, doi: str, year: int | None = None) -> list[PaperSource]:
         """
         Get the optimal source chain for a given identifier based on publication year.
 
@@ -128,7 +127,7 @@ class SourceManager:
                 logger.warning(f"[Router] Source '{name}' not available, skipping")
         return chain
 
-    def get_pdf_url(self, doi: str, year: Optional[int] = None) -> Optional[str]:
+    def get_pdf_url(self, doi: str, year: int | None = None) -> str | None:
         """
         Get PDF URL trying sources in optimal order.
 
@@ -143,8 +142,8 @@ class SourceManager:
         return pdf_url
 
     def get_pdf_url_with_metadata(
-        self, doi: str, year: Optional[int] = None
-    ) -> tuple[Optional[str], Optional[dict], Optional[str]]:
+        self, doi: str, year: int | None = None
+    ) -> tuple[str | None, dict | None, str | None]:
         """
         Get PDF URL and metadata in one pass (avoids duplicate API calls).
 
@@ -165,7 +164,7 @@ class SourceManager:
 
     def _query_sources_fast_then_slow(
         self, doi: str, chain: list[PaperSource]
-    ) -> tuple[Optional[str], Optional[dict], Optional[str]]:
+    ) -> tuple[str | None, dict | None, str | None]:
         """
         Query fast sources in parallel first, then fall back to slow sources sequentially.
 
@@ -192,7 +191,7 @@ class SourceManager:
 
     def _query_sources_sequential(
         self, doi: str, chain: list[PaperSource]
-    ) -> tuple[Optional[str], Optional[dict], Optional[str]]:
+    ) -> tuple[str | None, dict | None, str | None]:
         """Query sources sequentially (fallback mode)."""
         for source in chain:
             if not source.can_handle(doi):
@@ -227,7 +226,7 @@ class SourceManager:
 
     def _query_sources_parallel(
         self, doi: str, chain: list[PaperSource]
-    ) -> tuple[Optional[str], Optional[dict], Optional[str]]:
+    ) -> tuple[str | None, dict | None, str | None]:
         """
         Query multiple sources in parallel, return first successful result.
 
@@ -250,10 +249,10 @@ class SourceManager:
         workers = min(PARALLEL_QUERY_WORKERS, len(chain))
 
         # Track results by source name for priority handling
-        results: dict[str, tuple[Optional[str], Optional[dict]]] = {}
+        results: dict[str, tuple[str | None, dict | None]] = {}
         completed_sources = set()
 
-        def query_single_source(source: PaperSource) -> tuple[str, Optional[str], Optional[dict]]:
+        def query_single_source(source: PaperSource) -> tuple[str, str | None, dict | None]:
             """Query a single source, return (source_name, pdf_url, metadata)."""
             try:
                 if not source.can_handle(doi):
@@ -330,7 +329,7 @@ class SourceManager:
         logger.warning(f"[Router] All sources failed for {doi} (parallel)")
         return None, None, None
 
-    def _get_year_smart(self, doi: str) -> Optional[int]:
+    def _get_year_smart(self, doi: str) -> int | None:
         """
         Get publication year using smart lookup strategy.
 
