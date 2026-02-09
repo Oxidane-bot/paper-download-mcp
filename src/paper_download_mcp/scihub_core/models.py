@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -36,3 +37,6 @@ class DownloadResult:
     download_url: str | None = None
     download_time: float | None = None
     error: str | None = None
+    md_path: str | None = None
+    md_success: bool | None = None
+    md_error: str | None = None

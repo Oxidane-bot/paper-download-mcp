@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Synced scihub-core mirror failover and download retry logic from upstream.
 
+## [0.5.0] - 2026-02-09
+
+### Added
+- Synced upstream `scihub-cli` PDF-to-Markdown conversion pipeline into `scihub_core`.
+- Added optional Markdown conversion for MCP download tools via:
+  - `to_markdown` (enable conversion)
+  - `md_output_dir` (custom Markdown output directory)
+- Added result fields for Markdown conversion status and paths in MCP output.
+- Added tests for markdown field mapping, formatter output, and tool signatures.
+
+### Changed
+- Download result formatting now reports Markdown conversion success/failure details.
+- Updated README tool docs to include Markdown conversion parameters and behavior.
+
 ## [0.4.0] - 2026-01-12
 
 ### Added

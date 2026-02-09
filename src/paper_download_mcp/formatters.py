@@ -39,6 +39,17 @@ def format_download_result(result: DownloadResult) -> str:
         if result.download_time:
             lines.append(f"**Download Time**: {result.download_time:.2f}s")
 
+        if result.md_success is True:
+            lines.append("**Markdown Conversion**: Success")
+        elif result.md_success is False:
+            lines.append("**Markdown Conversion**: Failed (PDF download still succeeded)")
+
+        if result.md_path:
+            lines.append(f"**Markdown Path**: `{result.md_path}`")
+
+        if result.md_error:
+            lines.append(f"**Markdown Error**: {result.md_error}")
+
         return "\n".join(lines)
     else:
         # Failure case
@@ -96,6 +107,14 @@ def format_batch_results(results: list[DownloadResult]) -> str:
                 lines.append(f"{i}. **{title}** ({size_kb:.1f} KB, {source})")
                 if result.file_path:
                     lines.append(f"   - Path: `{result.file_path}`")
+                if result.md_success is True:
+                    lines.append("   - Markdown: Success")
+                elif result.md_success is False:
+                    lines.append("   - Markdown: Failed")
+                if result.md_path:
+                    lines.append(f"   - Markdown Path: `{result.md_path}`")
+                if result.md_error:
+                    lines.append(f"   - Markdown Error: {result.md_error}")
         lines.append("")
 
     # Failed downloads

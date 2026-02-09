@@ -25,6 +25,7 @@ MCP server for downloading academic papers from multiple sources with intelligen
   - `paper_batch_download` - Download multiple papers with progress reporting
   - `paper_metadata` - Get paper metadata without downloading PDF
 - **Clean Filenames**: `[YYYY] - Paper Title.pdf` format
+- **Optional Markdown Conversion**: Convert downloaded PDFs to Markdown (`to_markdown`)
 - **Rate Limiting**: Built-in delays for API compliance
 - **Comprehensive Error Messages**: Actionable suggestions on failures
 
@@ -99,6 +100,8 @@ Download a single academic paper by DOI or URL.
 **Parameters:**
 - `identifier` (required): DOI or URL (e.g., `10.1038/nature12373`)
 - `output_dir` (optional): Output directory (default: `./downloads`)
+- `to_markdown` (optional): Convert downloaded PDF to Markdown (default: `false`)
+- `md_output_dir` (optional): Markdown output directory (default: `<pdf_output_dir>/md`)
 
 **Example:**
 ```
@@ -107,6 +110,7 @@ Download the paper 10.1038/nature12373
 
 **Returns:**
 - Markdown with download details (file path, size, source, timing)
+- Markdown conversion status/path when enabled
 - Error message with suggestions if download fails
 
 ### paper_batch_download
@@ -116,6 +120,8 @@ Download multiple papers sequentially with progress reporting.
 **Parameters:**
 - `identifiers` (required): List of DOIs or URLs (1-50 maximum)
 - `output_dir` (optional): Output directory (default: `./downloads`)
+- `to_markdown` (optional): Convert downloaded PDFs to Markdown (default: `false`)
+- `md_output_dir` (optional): Markdown output directory (default: `<pdf_output_dir>/md`)
 
 **Example:**
 ```
@@ -126,6 +132,7 @@ Download these papers: 10.1038/nature12373, 10.1126/science.1234567
 - Markdown summary with statistics
 - List of successful downloads
 - List of failed downloads with errors
+- Markdown conversion status/path per successful item when enabled
 
 **Note:** Downloads are sequential with 2-second delays for rate limiting.
 

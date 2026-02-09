@@ -54,6 +54,9 @@ class DownloadResult:
     source: str | None = None
     download_time: float | None = None
     error: str | None = None
+    md_path: str | None = None
+    md_success: bool | None = None
+    md_error: str | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
@@ -67,4 +70,7 @@ class DownloadResult:
             "source": self.source,
             "download_time": self.download_time,
             "error": self.error,
+            "md_path": self.md_path,
+            "md_success": self.md_success,
+            "md_error": self.md_error,
         }

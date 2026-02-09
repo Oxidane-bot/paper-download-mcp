@@ -3,6 +3,7 @@
 import asyncio
 import os
 import time
+
 from ..formatters import format_batch_results, format_download_result
 from ..models import DownloadResult
 from ..scihub_core.client import SciHubClient
@@ -14,6 +15,7 @@ def _format_core_result(core_result: CoreDownloadResult) -> DownloadResult:
     """Convert scihub-core download results into MCP-friendly results."""
     doi = core_result.normalized_identifier or core_result.identifier
     file_path = os.path.abspath(core_result.file_path) if core_result.file_path else None
+    md_path = os.path.abspath(core_result.md_path) if core_result.md_path else None
     file_size = core_result.file_size
     if file_path and file_size is None and os.path.exists(file_path):
         file_size = os.path.getsize(file_path)
@@ -32,11 +34,19 @@ def _format_core_result(core_result: CoreDownloadResult) -> DownloadResult:
         source=source,
         download_time=core_result.download_time,
         error=core_result.error,
+        md_path=md_path,
+        md_success=core_result.md_success,
+        md_error=core_result.md_error,
     )
 
 
 @mcp.tool()
-async def paper_download(identifier: str, output_dir: str | None = "./downloads") -> str:
+async def paper_download(
+    identifier: str,
+    output_dir: str | None = "./downloads",
+    to_markdown: bool = False,
+    md_output_dir: str | None = None,
+) -> str:
     """
     Download academic paper by DOI, arXiv ID, or URL.
 
@@ -46,6 +56,8 @@ async def paper_download(identifier: str, output_dir: str | None = "./downloads"
     Args:
         identifier: DOI, arXiv ID, or URL
         output_dir: Save directory (default: './downloads')
+        to_markdown: Convert downloaded PDF to Markdown (default: False)
+        md_output_dir: Directory for generated Markdown files (default: '<pdf_output_dir>/md')
 
     Returns:
         Markdown with file path, metadata, source, or error message
@@ -60,7 +72,12 @@ async def paper_download(identifier: str, output_dir: str | None = "./downloads"
         """Synchronous wrapper for download operation."""
         try:
             # Initialize client with configuration
-            client = SciHubClient(email=EMAIL, output_dir=output_dir or DEFAULT_OUTPUT_DIR)  # type: ignore
+            client = SciHubClient(
+                email=EMAIL or "",
+                output_dir=output_dir or DEFAULT_OUTPUT_DIR,
+                convert_to_md=to_markdown,
+                md_output_dir=md_output_dir,
+            )
 
             # Download paper
             core_result = client.download_paper(identifier)
@@ -78,7 +95,10 @@ async def paper_download(identifier: str, output_dir: str | None = "./downloads"
 
 @mcp.tool()
 async def paper_batch_download(
-    identifiers: list[str], output_dir: str | None = "./downloads"
+    identifiers: list[str],
+    output_dir: str | None = "./downloads",
+    to_markdown: bool = False,
+    md_output_dir: str | None = None,
 ) -> str:
     """
     Download multiple papers sequentially (1-50 max, 2s delay).
@@ -88,6 +108,8 @@ async def paper_batch_download(
     Args:
         identifiers: List of DOIs, arXiv IDs, or URLs
         output_dir: Save directory (default: './downloads')
+        to_markdown: Convert downloaded PDFs to Markdown (default: False)
+        md_output_dir: Directory for generated Markdown files (default: '<pdf_output_dir>/md')
 
     Returns:
         Markdown summary with statistics, successes, and failures
@@ -111,7 +133,12 @@ async def paper_batch_download(
     def _batch_download() -> list[DownloadResult]:
         """Synchronous wrapper for batch download operation."""
         results = []
-        client = SciHubClient(email=EMAIL, output_dir=output_dir or DEFAULT_OUTPUT_DIR)  # type: ignore
+        client = SciHubClient(
+            email=EMAIL or "",
+            output_dir=output_dir or DEFAULT_OUTPUT_DIR,
+            convert_to_md=to_markdown,
+            md_output_dir=md_output_dir,
+        )
 
         for i, identifier in enumerate(identifiers):
             try:
