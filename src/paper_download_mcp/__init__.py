@@ -1,3 +1,3 @@
 """Paper Download MCP Server - Download academic papers via MCP protocol."""
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"

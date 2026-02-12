@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-02-12
+
+### Added
+- Synced upstream PDF link extraction utility into `scihub_core/core/pdf_link_extractor.py`.
+- Added source-attempt and HTML snapshot trace fields in core download results.
+
+### Changed
+- Synced latest upstream downloader/source-manager pipeline, including HTML recovery candidate routing.
+- Synced CORE source and markdown converter behavior from upstream.
+- Kept `scihub_core` formatting aligned with project ruff rules after upstream sync.
+
 ## [0.4.1] - 2026-01-12
 
 ### Added
@@ -177,5 +188,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `uvx` deployment support for zero-installation usage
 - Type-safe implementation with Pydantic models
 
+[0.5.2]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.5.2
 [0.1.1]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.1.0

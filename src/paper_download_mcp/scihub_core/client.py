@@ -3,7 +3,12 @@ Main Sci-Hub client providing high-level interface with multi-source support.
 """
 
 import os
+import re
 import time
+from html import unescape
+from pathlib import Path
+from typing import Any
+from urllib.parse import urlparse
 
 from .config.settings import settings
 from .converters.pdf_to_md import PdfToMarkdownConverter
@@ -49,6 +54,9 @@ class SciHubClient:
         md_strict: bool = True,
         md_overwrite: bool = False,
         md_converter: PdfToMarkdownConverter | None = None,
+        trace_html: bool = False,
+        trace_html_dir: str | None = None,
+        trace_html_max_chars: int = 2_000_000,
     ):
         """Initialize client with optional dependency injection."""
 
@@ -64,6 +72,9 @@ class SciHubClient:
         self.md_strict = md_strict
         self.md_overwrite = md_overwrite
         self.md_converter = md_converter
+        self.trace_html = trace_html
+        self.trace_html_dir = trace_html_dir
+        self.trace_html_max_chars = trace_html_max_chars
 
         # Dependency injection with defaults
         self.mirror_manager = mirror_manager or MirrorManager(mirrors, self.timeout)
@@ -137,6 +148,7 @@ class SciHubClient:
         Gets URL and metadata in one pass to avoid duplicate API calls.
         """
         start_time = time.time()
+        html_events: list[dict[str, Any]] = []
 
         def _build_result(
             *,
@@ -150,6 +162,8 @@ class SciHubClient:
             md_path: str | None = None,
             md_success: bool | None = None,
             md_error: str | None = None,
+            source_attempts: list[dict[str, Any]] | None = None,
+            html_snapshots: list[dict[str, Any]] | None = None,
         ) -> DownloadResult:
             title = metadata.get("title") if isinstance(metadata, dict) else None
             year = metadata.get("year") if isinstance(metadata, dict) else None
@@ -169,12 +183,28 @@ class SciHubClient:
                 md_path=md_path,
                 md_success=md_success,
                 md_error=md_error,
+                source_attempts=source_attempts,
+                html_snapshots=html_snapshots,
             )
 
+        def _collect_html_snapshot(snapshot: dict[str, Any]) -> None:
+            if self.trace_html:
+                html_events.append(dict(snapshot))
+
+        source_attempts: list[dict[str, Any]]
         # Get PDF URL and metadata together (avoids duplicate API calls)
-        download_url, metadata, source = self.source_manager.get_pdf_url_with_metadata(
-            normalized_identifier
-        )
+        if hasattr(self.source_manager, "get_pdf_url_with_metadata_and_trace"):
+            download_url, metadata, source, source_attempts = (
+                self.source_manager.get_pdf_url_with_metadata_and_trace(
+                    normalized_identifier,
+                    html_snapshot_callback=_collect_html_snapshot if self.trace_html else None,
+                )
+            )
+        else:
+            download_url, metadata, source = self.source_manager.get_pdf_url_with_metadata(
+                normalized_identifier
+            )
+            source_attempts = []
 
         if not download_url:
             error = f"Could not find PDF URL for {normalized_identifier} from any source"
@@ -184,15 +214,35 @@ class SciHubClient:
                 metadata=metadata,
                 source=source,
                 error=error,
+                source_attempts=source_attempts,
+                html_snapshots=self._persist_html_snapshots(identifier, html_events),
             )
 
-        logger.debug(f"Download URL: {download_url}")
+        download_candidates = self._collect_download_candidates(
+            primary_url=download_url,
+            source=source,
+            metadata=metadata,
+        )
+        if not download_candidates:
+            error = f"No valid download URL candidates for {normalized_identifier}"
+            logger.error(error)
+            return _build_result(
+                success=False,
+                metadata=metadata,
+                source=source,
+                download_url=download_url,
+                error=error,
+                source_attempts=source_attempts,
+                html_snapshots=self._persist_html_snapshots(identifier, html_events),
+            )
+        logger.debug(f"Download URL candidates ({len(download_candidates)}): {download_candidates}")
 
         # Generate filename from metadata if available
         filename = self._generate_filename(normalized_identifier, metadata)
         output_path = self.file_manager.get_output_path(filename)
 
         progress_state = {"bytes": 0, "total": None}
+        active_download_url = {"url": download_candidates[0]}
 
         def _handle_progress(bytes_downloaded: int, total_bytes: int | None) -> None:
             progress_state["bytes"] = bytes_downloaded
@@ -201,7 +251,7 @@ class SciHubClient:
                 progress_callback(
                     DownloadProgress(
                         identifier=identifier,
-                        url=download_url,
+                        url=active_download_url["url"],
                         bytes_downloaded=bytes_downloaded,
                         total_bytes=total_bytes,
                         done=False,
@@ -209,49 +259,82 @@ class SciHubClient:
                 )
 
         # Download the PDF (with automatic retry at download layer)
-        success, error_msg = self.downloader.download_file(
-            download_url,
-            output_path,
-            progress_callback=_handle_progress if progress_callback else None,
-        )
+        success = False
+        error_msg: str | None = None
+        attempted_errors: list[tuple[str, str]] = []
+
+        for index, candidate_url in enumerate(download_candidates, start=1):
+            active_download_url["url"] = candidate_url
+            logger.info(
+                f"Downloading via candidate URL ({index}/{len(download_candidates)}): {candidate_url}"
+            )
+            push_trace = getattr(self.downloader, "push_trace_context", None)
+            clear_trace = getattr(self.downloader, "clear_trace_context", None)
+            use_download_trace = self.trace_html and callable(push_trace) and callable(clear_trace)
+
+            if use_download_trace:
+                push_trace(
+                    {
+                        "identifier": normalized_identifier,
+                        "source": source or "unknown_source",
+                        "phase": "download",
+                        "candidate_index": index,
+                        "candidate_total": len(download_candidates),
+                    },
+                    html_snapshot_callback=_collect_html_snapshot,
+                )
+            try:
+                success, error_msg = self.downloader.download_file(
+                    candidate_url,
+                    output_path,
+                    progress_callback=_handle_progress if progress_callback else None,
+                )
+            finally:
+                if use_download_trace:
+                    clear_trace()
+            if success:
+                if self.file_manager.validate_file(output_path):
+                    download_url = candidate_url
+                    break
+
+                error_msg = "Downloaded file validation failed"
+                logger.error(error_msg)
+                if os.path.exists(output_path):
+                    os.unlink(output_path)
+                success = False
+
+            if "sci-hub" in candidate_url.lower():
+                logger.warning("Sci-Hub download failed, invalidating mirror cache")
+                scihub = [s for s in self.source_manager.sources.values() if s.name == "Sci-Hub"]
+                if scihub:
+                    scihub[0].mirror_manager.invalidate_cache()
+
+            attempted_errors.append((candidate_url, error_msg or "Download failed"))
+
         if progress_callback:
             progress_callback(
                 DownloadProgress(
                     identifier=identifier,
-                    url=download_url,
+                    url=active_download_url["url"],
                     bytes_downloaded=progress_state["bytes"],
                     total_bytes=progress_state["total"],
                     done=True,
                 )
             )
         if not success:
-            # If Sci-Hub download failed, invalidate mirror cache
-            if "sci-hub" in download_url.lower():
-                logger.warning("Sci-Hub download failed, invalidating mirror cache")
-                scihub = [s for s in self.source_manager.sources.values() if s.name == "Sci-Hub"]
-                if scihub:
-                    scihub[0].mirror_manager.invalidate_cache()
-
             error_msg = error_msg or "Download failed"
+            if len(attempted_errors) > 1:
+                details = "; ".join(f"{url} => {reason}" for url, reason in attempted_errors)
+                error_msg = f"{error_msg}. Tried {len(attempted_errors)} candidate URLs: {details}"
             logger.error(f"Failed to download {normalized_identifier}: {error_msg}")
             return _build_result(
                 success=False,
                 metadata=metadata,
                 source=source,
-                download_url=download_url,
+                download_url=active_download_url["url"],
                 error=error_msg,
-            )
-
-        # Validate file
-        if not self.file_manager.validate_file(output_path):
-            error = "Downloaded file validation failed"
-            logger.error(error)
-            return _build_result(
-                success=False,
-                metadata=metadata,
-                source=source,
-                download_url=download_url,
-                error=error,
+                source_attempts=source_attempts,
+                html_snapshots=self._persist_html_snapshots(identifier, html_events),
             )
 
         md_path: str | None = None
@@ -276,11 +359,129 @@ class SciHubClient:
             md_path=md_path,
             md_success=md_success,
             md_error=md_error,
+            source_attempts=source_attempts,
         )
 
-    def _convert_pdf_to_markdown(self, pdf_path: str) -> tuple[str | None, bool | None, str | None]:
-        from pathlib import Path
+    def _persist_html_snapshots(
+        self, identifier: str, snapshots: list[dict[str, Any]]
+    ) -> list[dict[str, Any]] | None:
+        """
+        Persist captured HTML snapshots to disk and return metadata records.
 
+        Snapshots are only persisted when trace_html is enabled.
+        """
+        if not self.trace_html or not snapshots:
+            return None
+
+        base_dir = (
+            Path(self.trace_html_dir)
+            if self.trace_html_dir
+            else Path(self.output_dir) / "trace-html"
+        )
+        identifier_dir = base_dir / self._safe_trace_token(identifier)
+        identifier_dir.mkdir(parents=True, exist_ok=True)
+
+        saved_records: list[dict[str, Any]] = []
+        for index, snapshot in enumerate(snapshots, start=1):
+            record = {k: v for k, v in snapshot.items() if k != "html"}
+
+            raw_html = snapshot.get("html")
+            html_text = raw_html if isinstance(raw_html, str) else None
+            record["html_chars"] = len(html_text) if html_text is not None else 0
+
+            status_part = str(
+                snapshot.get("status_code") if snapshot.get("status_code") is not None else "na"
+            )
+            source_part = self._safe_trace_token(str(snapshot.get("source") or "unknown_source"))
+            fetcher_part = self._safe_trace_token(str(snapshot.get("fetcher") or "requests"))
+
+            if not html_text:
+                record["file_path"] = None
+                saved_records.append(record)
+                continue
+
+            truncated = False
+            if len(html_text) > self.trace_html_max_chars:
+                html_text = html_text[: self.trace_html_max_chars]
+                truncated = True
+
+            record["truncated"] = truncated
+            target = identifier_dir / f"{index:03d}_{source_part}_{fetcher_part}_{status_part}.html"
+            try:
+                target.write_text(html_text, encoding="utf-8", errors="ignore")
+                record["file_path"] = str(target)
+            except Exception as e:
+                record["file_path"] = None
+                record["snapshot_error"] = str(e)
+
+            saved_records.append(record)
+
+        return saved_records
+
+    @staticmethod
+    def _safe_trace_token(value: str) -> str:
+        cleaned = re.sub(r"[^a-zA-Z0-9._-]+", "_", value).strip("._-")
+        if not cleaned:
+            return "unknown"
+        return cleaned[:120]
+
+    def _collect_download_candidates(
+        self,
+        *,
+        primary_url: str,
+        source: str | None,
+        metadata: dict[str, Any] | None,
+    ) -> list[str]:
+        """
+        Collect candidate URLs for final file download.
+
+        For CORE results, try additional metadata URLs when the primary URL fails.
+        """
+        seen: set[str] = set()
+        candidates: list[str] = []
+
+        def _add(candidate: Any) -> None:
+            if not isinstance(candidate, str):
+                return
+            cleaned = self._normalize_download_candidate(candidate)
+            if not cleaned or cleaned in seen:
+                return
+            seen.add(cleaned)
+            candidates.append(cleaned)
+
+        _add(primary_url)
+        if isinstance(metadata, dict):
+            _add(metadata.get("pdf_url"))
+
+        if source == "CORE" and isinstance(metadata, dict):
+            for key in ("source_fulltext_urls", "links_download_urls"):
+                values = metadata.get(key)
+                if isinstance(values, list):
+                    for value in values:
+                        _add(value)
+            links = metadata.get("links")
+            if isinstance(links, list):
+                for item in links:
+                    if not isinstance(item, dict):
+                        continue
+                    if str(item.get("type", "")).lower() != "download":
+                        continue
+                    _add(item.get("url"))
+            _add(metadata.get("core_download_url"))
+
+        return candidates
+
+    @staticmethod
+    def _normalize_download_candidate(candidate: str) -> str | None:
+        cleaned = unescape(candidate.strip())
+        if not cleaned:
+            return None
+        parsed = urlparse(cleaned)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return None
+        return cleaned
+
+    def _convert_pdf_to_markdown(self, pdf_path: str) -> tuple[str | None, bool | None, str | None]:
         from .converters.pdf_to_md import MarkdownConvertOptions
 
         pdf = Path(pdf_path)
@@ -331,8 +532,6 @@ class SciHubClient:
                 logger.debug(f"Could not generate filename from metadata: {e}")
 
         # If the identifier is a URL (e.g., direct PDF link), use URL-based naming.
-        from urllib.parse import urlparse
-
         parsed = urlparse(doi)
         if parsed.scheme in {"http", "https"} and parsed.netloc:
             return self.file_manager.generate_filename_from_url(doi)
