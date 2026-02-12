@@ -64,7 +64,7 @@ def format_download_result(result: DownloadResult) -> str:
         lines.append("")
         lines.append("**Suggestions**:")
         lines.append("- Verify the DOI is correct (check on doi.org)")
-        lines.append("- Try `paper_metadata` to check paper availability")
+        lines.append("- Try `paper_get_metadata` to check paper availability")
         lines.append("- The paper may be too recent (not yet indexed)")
         lines.append("- Check if the paper is behind a paywall with no open access")
 
@@ -86,7 +86,7 @@ def format_batch_results(results: list[DownloadResult]) -> str:
     failed = total - successful
     total_time = sum(r.download_time for r in results if r.download_time)
 
-    lines = ["# Batch Download Summary", ""]
+    lines = ["# Download Summary", ""]
 
     # Summary statistics
     lines.append(f"**Total Papers**: {total}")

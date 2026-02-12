@@ -17,7 +17,7 @@ async def main():
     print("=" * 60)
 
     # Get registered tools
-    tools = await mcp.get_tools()
+    tools = await mcp.list_tools()
 
     print(f"\nFound {len(tools)} registered tools:\n")
 
@@ -32,8 +32,7 @@ async def main():
     # Test that we can access the tool functions
     print("\nTool functions accessible:")
     print(f"  - paper_download: {hasattr(download, 'paper_download')}")
-    print(f"  - paper_batch_download: {hasattr(download, 'paper_batch_download')}")
-    print(f"  - paper_metadata: {hasattr(metadata, 'paper_metadata')}")
+    print(f"  - paper_get_metadata: {hasattr(metadata, 'paper_get_metadata')}")
 
     return len(tools)
 
@@ -44,4 +43,4 @@ if __name__ == "__main__":
     os.environ["SCIHUB_CLI_EMAIL"] = "test@university.edu"
 
     count = asyncio.run(main())
-    sys.exit(0 if count == 3 else 1)
+    sys.exit(0 if count == 2 else 1)

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-02-12
+
+### Changed
+- **Breaking**: Redesigned MCP tool surface to a two-tool model focused on clearer E2E usage.
+- `paper_download` now accepts `identifiers: list[str]` and handles both single/multi downloads in one tool.
+- Renamed metadata tool from `paper_metadata` to `paper_get_metadata`.
+- Download summary heading is now `# Download Summary` for both one-item and multi-item requests.
+
+### Removed
+- **Breaking**: Removed `paper_batch_download`; its functionality is now covered by `paper_download`.
+
 ## [0.5.2] - 2026-02-12
 
 ### Added
@@ -188,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `uvx` deployment support for zero-installation usage
 - Type-safe implementation with Pydantic models
 
+[0.6.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.6.0
 [0.5.2]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.5.2
 [0.1.1]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.1.0

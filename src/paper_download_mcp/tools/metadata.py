@@ -9,7 +9,7 @@ from ..services.metadata_service import get_metadata_sync
 
 
 @mcp.tool()
-async def paper_metadata(identifier: str) -> str:
+async def paper_get_metadata(identifier: str) -> str:
     """
     Get paper metadata without downloading (fast, <1s).
 
@@ -23,8 +23,8 @@ async def paper_metadata(identifier: str) -> str:
         JSON with metadata fields
 
     Examples:
-        paper_metadata("10.1038/nature12373")  # DOI
-        paper_metadata("2301.00001")  # arXiv ID
+        paper_get_metadata("10.1038/nature12373")  # DOI
+        paper_get_metadata("2301.00001")  # arXiv ID
     """
 
     metadata = await asyncio.to_thread(

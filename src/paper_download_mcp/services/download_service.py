@@ -26,28 +26,7 @@ def _build_client(
     )
 
 
-def download_sync(
-    *,
-    config: RuntimeConfig,
-    identifier: str,
-    output_dir: str | None,
-    to_markdown: bool,
-    md_output_dir: str | None,
-) -> DownloadResult:
-    """Download one paper using blocking core APIs."""
-    try:
-        client = _build_client(
-            config=config,
-            output_dir=output_dir,
-            to_markdown=to_markdown,
-            md_output_dir=md_output_dir,
-        )
-        return core_to_mcp_download_result(client.download_paper(identifier))
-    except Exception as e:
-        return DownloadResult(doi=identifier, success=False, error=str(e))
-
-
-def batch_download_sync(
+def download_many_sync(
     *,
     config: RuntimeConfig,
     identifiers: list[str],

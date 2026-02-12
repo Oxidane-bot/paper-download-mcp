@@ -20,10 +20,9 @@ MCP server for downloading academic papers from multiple sources with intelligen
   - **Sci-Hub**: Fallback for older papers (coverage-driven)
   - **CORE**: Additional OA fallback
 - **Intelligent Routing**: Priority-based source selection with year-aware routing
-- **3 MCP Tools**:
-  - `paper_download` - Download single paper by DOI or URL
-  - `paper_batch_download` - Download multiple papers with progress reporting
-  - `paper_metadata` - Get paper metadata without downloading PDF
+- **2 MCP Tools**:
+  - `paper_download` - Download one or more papers by DOI/arXiv ID/URL
+  - `paper_get_metadata` - Get paper metadata without downloading PDF
 - **Clean Filenames**: `[YYYY] - Paper Title.pdf` format
 - **Optional Markdown Conversion**: Convert downloaded PDFs to Markdown (`to_markdown`)
 - **Rate Limiting**: Built-in delays for API compliance
@@ -95,57 +94,42 @@ After configuration, restart Claude Desktop.
 
 ### paper_download
 
-Download a single academic paper by DOI or URL.
+Download one or more academic papers by DOI, arXiv ID, or URL.
+The tool runs sequentially in one call and supports optional PDF-to-Markdown conversion.
 
 **Parameters:**
-- `identifier` (required): DOI or URL (e.g., `10.1038/nature12373`)
-- `output_dir` (optional): Output directory (default: `./downloads`)
-- `to_markdown` (optional): Convert downloaded PDF to Markdown (default: `false`)
-- `md_output_dir` (optional): Markdown output directory (default: `<pdf_output_dir>/md`)
-
-**Example:**
-```
-Download the paper 10.1038/nature12373
-```
-
-**Returns:**
-- Markdown with download details (file path, size, source, timing)
-- Markdown conversion status/path when enabled
-- Error message with suggestions if download fails
-
-### paper_batch_download
-
-Download multiple papers sequentially with progress reporting.
-
-**Parameters:**
-- `identifiers` (required): List of DOIs or URLs (1-50 maximum)
+- `identifiers` (required): List of identifiers (DOI/arXiv ID/URL), 1-50 items
 - `output_dir` (optional): Output directory (default: `./downloads`)
 - `to_markdown` (optional): Convert downloaded PDFs to Markdown (default: `false`)
-- `md_output_dir` (optional): Markdown output directory (default: `<pdf_output_dir>/md`)
+- `md_output_dir` (optional): Markdown output directory (default: `<output_dir>/md`)
 
 **Example:**
 ```
-Download these papers: 10.1038/nature12373, 10.1126/science.1234567
+paper_download([
+  "10.1038/nature12373",
+  "2301.00001"
+])
 ```
 
 **Returns:**
-- Markdown summary with statistics
-- List of successful downloads
-- List of failed downloads with errors
-- Markdown conversion status/path per successful item when enabled
+- Markdown summary with total/success/failure statistics
+- Per-item success details (title, path, source, markdown status)
+- Per-item failure reasons and suggestions
 
-**Note:** Downloads are sequential with 2-second delays for rate limiting.
+**Notes:**
+- Single-paper download is just a one-item `identifiers` list.
+- Requests are sequential with a 2-second delay between items.
 
-### paper_metadata
+### paper_get_metadata
 
 Retrieve paper metadata without downloading the PDF.
 
 **Parameters:**
-- `identifier` (required): DOI or URL
+- `identifier` (required): DOI, arXiv ID, or URL
 
 **Example:**
 ```
-Get metadata for 10.1038/nature12373
+paper_get_metadata("10.1038/nature12373")
 ```
 
 **Returns:**
@@ -177,7 +161,7 @@ The server uses priority routing to keep fast sources first:
 
 ### Rate Limiting
 
-- 2-second delay between batch downloads
+- 2-second delay between items within one `paper_download` request
 - Respects Unpaywall API limits (~100k requests/day)
 - Built-in exponential backoff retry (3 attempts max)
 
@@ -197,7 +181,7 @@ The server uses priority routing to keep fast sources first:
 
 **Solutions:**
 - Verify DOI on doi.org
-- Use `paper_metadata` to check availability
+- Use `paper_get_metadata` to check availability
 - Try again later (mirrors may recover)
 
 ### Download times out
@@ -262,7 +246,7 @@ paper-download-mcp/
 │       ├── models.py           # Pydantic input schemas
 │       ├── formatters.py       # Markdown/JSON formatters
 │       ├── tools/
-│       │   ├── download.py     # Download tools
+│       │   ├── download.py     # Download tool
 │       │   └── metadata.py     # Metadata tool
 │       └── scihub_core/        # Copied from scihub-cli
 ├── pyproject.toml
@@ -285,15 +269,14 @@ All tools use `asyncio.to_thread()` to wrap synchronous scihub-cli code:
 
 ```python
 @mcp.tool()
-async def paper_download(...):
-    def _sync_download():
+async def paper_download(identifiers: list[str], ...):
+    def _sync_download_many():
         # Synchronous scihub-cli code
-        client = SciHubClient()
-        return client.download_paper(doi)
+        return download_many_sync(identifiers=identifiers, ...)
 
     # Run in thread pool
-    result = await asyncio.to_thread(_sync_download)
-    return format_result(result)
+    results = await asyncio.to_thread(_sync_download_many)
+    return format_batch_results(results)
 ```
 
 This preserves the battle-tested scihub-cli code without modifications.
@@ -303,8 +286,8 @@ This preserves the battle-tested scihub-cli code without modifications.
 | Operation | Target | Typical | Max |
 |-----------|--------|---------|-----|
 | Get Metadata | <1s | 0.5s | 2s |
-| Single Download | <5s | 2-3s | 10s |
-| Batch (10 papers) | <40s | 25-30s | 60s |
+| Download (1 paper) | <5s | 2-3s | 10s |
+| Download (10 papers) | <40s | 25-30s | 60s |
 
 **Note**: First download may take longer (5-10s) due to mirror selection. Subsequent downloads use cached mirror.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test paper_metadata tool with a real API call."""
+"""Test metadata retrieval flow with a real API call."""
 
 import asyncio
 import os
