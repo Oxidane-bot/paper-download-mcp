@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Reworked README to prioritize MCP client onboarding (Claude Code, Codex, Claude Desktop) over installation-heavy content.
+- Clarified configuration semantics: `PAPER_DOWNLOAD_EMAIL` is required, while `PAPER_DOWNLOAD_OUTPUT_DIR` is optional and primarily a global fallback.
+- Updated language switch links to absolute GitHub URLs to render correctly on PyPI.
+
+### Added
+- Added a full Chinese user guide in `README.zh-CN.md` with matching MCP setup and tool usage examples.
+
 ## [0.6.0] - 2026-02-12
 
 ### Changed
