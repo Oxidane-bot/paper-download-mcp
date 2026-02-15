@@ -10,6 +10,8 @@ from ..services.download_service import download_many_sync
 
 MAX_BATCH_SIZE = 50
 BATCH_DELAY_SECONDS = 2
+DEFAULT_PARALLEL_DOWNLOADS = 3
+MAX_PARALLEL_DOWNLOADS = 6
 
 # Backward-compatible export for tests and external imports.
 _format_core_result = core_to_mcp_download_result
@@ -19,17 +21,26 @@ _format_core_result = core_to_mcp_download_result
 async def paper_download(
     identifiers: list[str],
     output_dir: str | None = "./downloads",
+    parallel: int = DEFAULT_PARALLEL_DOWNLOADS,
     to_markdown: bool = False,
     md_output_dir: str | None = None,
 ) -> str:
     """
     Download one or more academic papers by DOI, arXiv ID, or URL.
-    Runs sequentially (1-50 max, 2s delay between items) and optionally converts PDFs
-    to Markdown in `md_output_dir` (default: `<output_dir>/md`).
+    Runs with configurable parallel workers (1-50 max, default parallel=3).
+    When `parallel=1`, items are processed sequentially with a 2s delay between items.
+    Optionally converts PDFs to Markdown in `md_output_dir` (default: `<output_dir>/md`).
+
+    Source behavior:
+    - arXiv IDs: arXiv is prioritized first.
+    - DOI/URL inputs: OA sources are preferred (Unpaywall, CORE, direct OA URLs).
+    - Sci-Hub is only considered for DOI-based flows, mainly as fallback for older/unknown-year papers.
+    - For papers detected as 2021 or later, routing is OA-only (Sci-Hub skipped).
 
     Args:
         identifiers: List of DOIs, arXiv IDs, or URLs
         output_dir: Save directory (default: './downloads')
+        parallel: Number of concurrent downloads (1-6, default: 3)
         to_markdown: Convert downloaded PDFs to Markdown (default: False)
         md_output_dir: Directory for generated Markdown files (default: '<output_dir>/md')
 
@@ -53,11 +64,19 @@ async def paper_download(
             "**Suggestion**: Split into multiple smaller batches."
         )
 
+    if parallel < 1 or parallel > MAX_PARALLEL_DOWNLOADS:
+        return (
+            "# Error\n\n"
+            f"Invalid `parallel` value: {parallel}. "
+            f"Allowed range is 1-{MAX_PARALLEL_DOWNLOADS}."
+        )
+
     results = await asyncio.to_thread(
         download_many_sync,
         config=get_runtime_config(),
         identifiers=identifiers,
         output_dir=output_dir,
+        parallel=parallel,
         to_markdown=to_markdown,
         md_output_dir=md_output_dir,
         delay_seconds=BATCH_DELAY_SECONDS,

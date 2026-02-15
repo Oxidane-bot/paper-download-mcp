@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ..adapters.core_results import core_to_mcp_download_result
 from ..models import DownloadResult
@@ -34,9 +35,11 @@ def download_many_sync(
     to_markdown: bool,
     md_output_dir: str | None,
     delay_seconds: int = 2,
+    parallel: int = 1,
 ) -> list[DownloadResult]:
-    """Download multiple papers sequentially using blocking core APIs."""
+    """Download multiple papers with optional parallel workers using blocking core APIs."""
     results: list[DownloadResult] = []
+    parallel = max(1, parallel)
     client = _build_client(
         config=config,
         output_dir=output_dir,
@@ -44,13 +47,34 @@ def download_many_sync(
         md_output_dir=md_output_dir,
     )
 
-    for index, identifier in enumerate(identifiers):
+    if parallel == 1 or len(identifiers) <= 1:
+        for index, identifier in enumerate(identifiers):
+            try:
+                results.append(core_to_mcp_download_result(client.download_paper(identifier)))
+            except Exception as e:
+                results.append(DownloadResult(doi=identifier, success=False, error=str(e)))
+
+            if index < len(identifiers) - 1:
+                time.sleep(delay_seconds)
+        return results
+
+    workers = min(parallel, len(identifiers))
+    ordered_results: list[DownloadResult | None] = [None] * len(identifiers)
+
+    def _download_one(index: int, identifier: str) -> tuple[int, DownloadResult]:
         try:
-            results.append(core_to_mcp_download_result(client.download_paper(identifier)))
+            result = core_to_mcp_download_result(client.download_paper(identifier))
         except Exception as e:
-            results.append(DownloadResult(doi=identifier, success=False, error=str(e)))
+            result = DownloadResult(doi=identifier, success=False, error=str(e))
+        return index, result
 
-        if index < len(identifiers) - 1:
-            time.sleep(delay_seconds)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        future_to_index = {
+            executor.submit(_download_one, index, identifier): index
+            for index, identifier in enumerate(identifiers)
+        }
+        for future in as_completed(future_to_index):
+            index, result = future.result()
+            ordered_results[index] = result
 
-    return results
+    return [result for result in ordered_results if result is not None]

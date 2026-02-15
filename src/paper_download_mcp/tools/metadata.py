@@ -15,6 +15,11 @@ async def paper_get_metadata(identifier: str) -> str:
 
     Sources: Unpaywall, Crossref, arXiv APIs
     Returns: title, authors, year, journal, OA status, available sources
+    Notes:
+    - arXiv identifiers are resolved via arXiv metadata APIs.
+    - For DOI inputs, `available_sources` reflects routing semantics:
+      - OA sources (Unpaywall) when available.
+      - `Sci-Hub` is listed only when publication year is inferred as < 2021.
 
     Args:
         identifier: DOI, arXiv ID, or URL

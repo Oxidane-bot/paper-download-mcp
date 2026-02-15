@@ -7,13 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-02-15
+
 ### Changed
 - Reworked README to prioritize MCP client onboarding (Claude Code, Codex, Claude Desktop) over installation-heavy content.
 - Clarified configuration semantics: `PAPER_DOWNLOAD_EMAIL` is required, while `PAPER_DOWNLOAD_OUTPUT_DIR` is optional and primarily a global fallback.
 - Updated language switch links to absolute GitHub URLs to render correctly on PyPI.
+- `paper_download` now supports configurable batch concurrency with `parallel` (default `3`, range `1-6`).
+- Updated tool docstrings to clarify source-routing limits (OA-first routing, arXiv priority, and 2021+ OA-only behavior).
 
 ### Added
 - Added a full Chinese user guide in `README.zh-CN.md` with matching MCP setup and tool usage examples.
+- Added offline tests for `download_many_sync` parallel/sequential behavior and inter-item delay semantics.
 
 ## [0.6.0] - 2026-02-12
 
@@ -209,6 +214,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `uvx` deployment support for zero-installation usage
 - Type-safe implementation with Pydantic models
 
+[Unreleased]: https://github.com/Oxidane-bot/paper-download-mcp/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.7.0
 [0.6.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.6.0
 [0.5.2]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.5.2
 [0.1.1]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.1.1
