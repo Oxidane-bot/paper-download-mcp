@@ -10,8 +10,8 @@ from ..services.download_service import download_many_sync
 
 MAX_BATCH_SIZE = 50
 BATCH_DELAY_SECONDS = 2
-DEFAULT_PARALLEL_DOWNLOADS = 3
-MAX_PARALLEL_DOWNLOADS = 6
+DEFAULT_PARALLEL_DOWNLOADS = 10
+MAX_PARALLEL_DOWNLOADS = 50
 
 # Backward-compatible export for tests and external imports.
 _format_core_result = core_to_mcp_download_result
@@ -27,7 +27,7 @@ async def paper_download(
 ) -> str:
     """
     Download one or more academic papers by DOI, arXiv ID, or URL.
-    Runs with configurable parallel workers (1-50 max, default parallel=3).
+    Runs with configurable parallel workers (1-50 max, default parallel=10).
     When `parallel=1`, items are processed sequentially with a 2s delay between items.
     Optionally converts PDFs to Markdown in `md_output_dir` (default: `<output_dir>/md`).
 
@@ -40,7 +40,7 @@ async def paper_download(
     Args:
         identifiers: List of DOIs, arXiv IDs, or URLs
         output_dir: Save directory (default: './downloads')
-        parallel: Number of concurrent downloads (1-6, default: 3)
+        parallel: Number of concurrent downloads (1-50, default: 10)
         to_markdown: Convert downloaded PDFs to Markdown (default: False)
         md_output_dir: Directory for generated Markdown files (default: '<output_dir>/md')
 

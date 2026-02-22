@@ -57,6 +57,9 @@ class SciHubClient:
         trace_html: bool = False,
         trace_html_dir: str | None = None,
         trace_html_max_chars: int = 2_000_000,
+        enable_core: bool = False,
+        fast_fail: bool = True,
+        download_deadline_seconds: float | None = None,
     ):
         """Initialize client with optional dependency injection."""
 
@@ -75,12 +78,21 @@ class SciHubClient:
         self.trace_html = trace_html
         self.trace_html_dir = trace_html_dir
         self.trace_html_max_chars = trace_html_max_chars
+        self.enable_core = enable_core
+        self.fast_fail = fast_fail
+        self.download_deadline_seconds = download_deadline_seconds
 
         # Dependency injection with defaults
         self.mirror_manager = mirror_manager or MirrorManager(mirrors, self.timeout)
         self.parser = parser or ContentParser()
         self.file_manager = file_manager or FileManager(self.output_dir)
-        self.downloader = downloader or FileDownloader(BasicSession(self.timeout))
+        self.downloader = downloader or FileDownloader(
+            BasicSession(self.timeout),
+            timeout=self.timeout,
+            fast_fail=self.fast_fail,
+            retries=retries,
+            download_deadline_seconds=self.download_deadline_seconds,
+        )
 
         # DOI processor (stateless)
         self.doi_processor = DOIProcessor()
@@ -109,8 +121,11 @@ class SciHubClient:
             if self.email:
                 sources.insert(0, UnpaywallSource(email=self.email, timeout=self.timeout))
 
-            # CORE does not require email, keep as OA fallback
-            sources.append(CORESource(api_key=settings.core_api_key, timeout=self.timeout))
+            # CORE does not require email, keep as OA fallback (unless explicitly disabled)
+            if self.enable_core:
+                sources.append(CORESource(api_key=settings.core_api_key, timeout=self.timeout))
+            else:
+                logger.info("CORE source disabled by configuration")
 
             self.source_manager = SourceManager(
                 sources=sources,
@@ -468,6 +483,11 @@ class SciHubClient:
                         continue
                     _add(item.get("url"))
             _add(metadata.get("core_download_url"))
+        for candidate in self._derive_pmc_fallback_download_candidates(
+            primary_url=primary_url,
+            source=source,
+        ):
+            _add(candidate)
 
         return candidates
 
@@ -480,6 +500,37 @@ class SciHubClient:
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             return None
         return cleaned
+
+    @staticmethod
+    def _derive_pmc_fallback_download_candidates(
+        *, primary_url: str, source: str | None
+    ) -> list[str]:
+        """
+        Derive alternate PMC download endpoints for challenge-prone PMC PDF links.
+        """
+        parsed = urlparse(primary_url.strip())
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return []
+
+        host = parsed.netloc.lower()
+        source_name = (source or "").strip().lower()
+        if source_name != "pmc" and "pmc.ncbi.nlm.nih.gov" not in host:
+            return []
+        path_lower = (parsed.path or "").lower()
+        # Fast-fail trade-off: only route the canonical PMC PDF endpoint through Europe PMC.
+        # Named journal PDF files work less consistently and add noticeable latency.
+        if not path_lower.endswith("/pdf/main.pdf"):
+            return []
+
+        match = re.search(r"(PMC\d+)", primary_url, re.IGNORECASE)
+        if not match:
+            return []
+        pmc_id = match.group(1).upper()
+
+        return [
+            f"https://europepmc.org/backend/ptpmcrender.fcgi?accid={pmc_id}&blobtype=pdf",
+            f"https://europepmc.org/articles/{pmc_id}?pdf=render",
+        ]
 
     def _convert_pdf_to_markdown(self, pdf_path: str) -> tuple[str | None, bool | None, str | None]:
         from .converters.pdf_to_md import MarkdownConvertOptions

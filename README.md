@@ -105,14 +105,14 @@ Legacy env vars are still supported for compatibility:
 
 ### `paper_download`
 
-Download papers with configurable concurrency (default `parallel=3`).
+Download papers with configurable concurrency (default `parallel=10`).
 If `parallel=1`, papers are processed sequentially with a 2-second delay between items.
 
 Parameters:
 
 - `identifiers` (required): `list[str]`, 1-50 items
 - `output_dir` (optional): target directory (default `./downloads`)
-- `parallel` (optional): concurrent workers, `1-6` (default `3`)
+- `parallel` (optional): concurrent workers, `1-50` (default `10`)
 - `to_markdown` (optional): convert PDF to Markdown (`false` by default)
 - `md_output_dir` (optional): Markdown directory (default `<output_dir>/md`)
 
@@ -121,7 +121,7 @@ Examples:
 ```text
 paper_download(["10.1038/nature12373"])
 paper_download(["10.1038/nature12373", "2301.00001"], output_dir="/path/to/papers")
-paper_download(["10.1038/nature12373", "10.1126/science.169.3946.635"], parallel=3)
+paper_download(["10.1038/nature12373", "10.1126/science.169.3946.635"], parallel=10)
 paper_download(["10.1038/nature12373"], to_markdown=true)
 ```
 

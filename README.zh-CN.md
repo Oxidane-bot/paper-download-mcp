@@ -105,14 +105,14 @@ PAPER_DOWNLOAD_EMAIL = "your-email@university.edu"
 
 ### `paper_download`
 
-支持可配置并发下载（默认 `parallel=3`）。
+支持可配置并发下载（默认 `parallel=10`）。
 当 `parallel=1` 时按顺序下载，且每条之间间隔 2 秒。
 
 参数：
 
 - `identifiers`（必填）：`list[str]`，1-50 项
 - `output_dir`（可选）：下载目录，默认 `./downloads`
-- `parallel`（可选）：并发 worker 数，`1-6`（默认 `3`）
+- `parallel`（可选）：并发 worker 数，`1-50`（默认 `10`）
 - `to_markdown`（可选）：是否转 Markdown，默认 `false`
 - `md_output_dir`（可选）：Markdown 输出目录，默认 `<output_dir>/md`
 
@@ -121,7 +121,7 @@ PAPER_DOWNLOAD_EMAIL = "your-email@university.edu"
 ```text
 paper_download(["10.1038/nature12373"])
 paper_download(["10.1038/nature12373", "2301.00001"], output_dir="/path/to/papers")
-paper_download(["10.1038/nature12373", "10.1126/science.169.3946.635"], parallel=3)
+paper_download(["10.1038/nature12373", "10.1126/science.169.3946.635"], parallel=10)
 paper_download(["10.1038/nature12373"], to_markdown=true)
 ```
 

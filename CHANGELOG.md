@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-02-22
+
+### Changed
+- Synced `scihub_core` with the latest upstream `scihub-cli` implementation, including fast-fail download pipeline, mirror/source recovery behavior, and enhanced PDF candidate extraction.
+- Updated MCP runtime defaults to match new desired behavior:
+  - `fast_fail` enabled by default
+  - CORE source disabled by default
+  - default parallel downloads set to `10`
+- Expanded `paper_download` concurrency limit to `1-50` (default `10`) in tool validation and docs.
+- Updated English/Chinese README examples and parameter docs for the new parallel defaults.
+
 ## [0.7.0] - 2026-02-15
 
 ### Changed
@@ -214,7 +225,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `uvx` deployment support for zero-installation usage
 - Type-safe implementation with Pydantic models
 
-[Unreleased]: https://github.com/Oxidane-bot/paper-download-mcp/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Oxidane-bot/paper-download-mcp/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.8.0
 [0.7.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.7.0
 [0.6.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.6.0
 [0.5.2]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.5.2

@@ -74,7 +74,17 @@ class SourceManager:
         Returns:
             Ordered list of sources to try
         """
-        # Check if it's an arXiv identifier - prioritize arXiv source
+        parsed = urlparse(doi)
+        is_url_input = parsed.scheme in {"http", "https"} and parsed.netloc
+
+        # arXiv URLs: use arXiv fast path with URL handlers as fallback.
+        if is_url_input and "arXiv" in self.sources and self.sources["arXiv"].can_handle(doi):
+            logger.info(
+                "[Router] Detected arXiv URL, using arXiv -> Direct PDF -> PMC -> HTML Landing"
+            )
+            return self._build_chain(["arXiv", "Direct PDF", "PMC", "HTML Landing"])
+
+        # Non-URL arXiv identifiers: OA chain is still appropriate.
         if "arXiv" in self.sources and self.sources["arXiv"].can_handle(doi):
             logger.info(
                 "[Router] Detected arXiv identifier, using arXiv -> Unpaywall -> CORE -> Sci-Hub"
@@ -82,8 +92,12 @@ class SourceManager:
             return self._build_chain(["arXiv", "Unpaywall", "CORE", "Sci-Hub"])
 
         # If the input is a URL, prefer URL-specific handlers first.
-        parsed = urlparse(doi)
-        if parsed.scheme in {"http", "https"} and parsed.netloc:
+        if is_url_input:
+            path_lower = parsed.path.lower()
+            query_lower = (parsed.query or "").lower()
+            if path_lower.endswith(".pdf") or ".pdf" in query_lower:
+                logger.info("[Router] Detected direct PDF URL input, using Direct PDF only")
+                return self._build_chain(["Direct PDF"])
             logger.info("[Router] Detected URL input, using Direct PDF -> PMC -> HTML Landing")
             return self._build_chain(["Direct PDF", "PMC", "HTML Landing"])
 

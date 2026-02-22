@@ -24,6 +24,8 @@ def _build_client(
         output_dir=output_dir or config.default_output_dir,
         convert_to_md=to_markdown,
         md_output_dir=md_output_dir,
+        enable_core=False,
+        fast_fail=True,
     )
 
 
@@ -35,7 +37,7 @@ def download_many_sync(
     to_markdown: bool,
     md_output_dir: str | None,
     delay_seconds: int = 2,
-    parallel: int = 1,
+    parallel: int = 10,
 ) -> list[DownloadResult]:
     """Download multiple papers with optional parallel workers using blocking core APIs."""
     results: list[DownloadResult] = []

@@ -16,7 +16,7 @@ def test_paper_download_signature_defaults():
     assert "identifiers" in signature.parameters
     assert "identifier" not in signature.parameters
     assert "parallel" in signature.parameters
-    assert signature.parameters["parallel"].default == 3
+    assert signature.parameters["parallel"].default == 10
     assert "to_markdown" in signature.parameters
     assert signature.parameters["to_markdown"].default is False
     assert "md_output_dir" in signature.parameters
