@@ -107,6 +107,7 @@ Legacy env vars are still supported for compatibility:
 
 Download papers with configurable concurrency (default `parallel=10`).
 If `parallel=1`, papers are processed sequentially with a 2-second delay between items.
+OA-first routing uses OpenAlex and Unpaywall first; CORE is disabled by default in MCP runtime.
 
 Parameters:
 

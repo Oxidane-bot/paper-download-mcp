@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-03-04
+
+### Changed
+- Synced `scihub_core` with upstream `scihub-cli` commit `a577cc7` (2026-03-04), including improved downloader/HTML-landing heuristics and identifier normalization.
+- Added OpenAlex OA source integration in core routing for DOI and arXiv fallback chains.
+- Added OpenAlex API key plumbing in core config (`OPENALEX_API_KEY` and persisted user config key).
+- Added `academic_only` pathway in upstream-compatible CLI core interface.
+- Kept MCP runtime defaults aligned with project policy:
+  - `fast_fail` enabled by default
+  - CORE disabled by default
+  - default parallel remains `10`
+
 ## [0.8.0] - 2026-02-22
 
 ### Changed
@@ -225,7 +237,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `uvx` deployment support for zero-installation usage
 - Type-safe implementation with Pydantic models
 
-[Unreleased]: https://github.com/Oxidane-bot/paper-download-mcp/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/Oxidane-bot/paper-download-mcp/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.9.0
 [0.8.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.8.0
 [0.7.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.7.0
 [0.6.0]: https://github.com/Oxidane-bot/paper-download-mcp/releases/tag/v0.6.0

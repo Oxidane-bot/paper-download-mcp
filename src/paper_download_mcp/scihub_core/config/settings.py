@@ -53,6 +53,8 @@ class Settings:
 
         # CORE API key (optional, improves rate limits)
         self.core_api_key = os.getenv("CORE_API_KEY") or user_config.get_core_api_key()
+        # OpenAlex API key (optional; unauthenticated mode also works)
+        self.openalex_api_key = os.getenv("OPENALEX_API_KEY") or user_config.get_openalex_api_key()
 
         # Logging configuration
         user_home = str(Path.home())

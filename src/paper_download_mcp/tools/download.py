@@ -33,7 +33,8 @@ async def paper_download(
 
     Source behavior:
     - arXiv IDs: arXiv is prioritized first.
-    - DOI/URL inputs: OA sources are preferred (Unpaywall, CORE, direct OA URLs).
+    - DOI/URL inputs: OA sources are preferred (OpenAlex, Unpaywall, direct OA URLs).
+    - CORE is disabled by default in MCP runtime configuration.
     - Sci-Hub is only considered for DOI-based flows, mainly as fallback for older/unknown-year papers.
     - For papers detected as 2021 or later, routing is OA-only (Sci-Hub skipped).
 

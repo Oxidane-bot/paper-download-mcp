@@ -107,6 +107,7 @@ PAPER_DOWNLOAD_EMAIL = "your-email@university.edu"
 
 支持可配置并发下载（默认 `parallel=10`）。
 当 `parallel=1` 时按顺序下载，且每条之间间隔 2 秒。
+路由默认优先走 OpenAlex 与 Unpaywall（OA 优先）；MCP 运行时默认关闭 CORE。
 
 参数：
 
