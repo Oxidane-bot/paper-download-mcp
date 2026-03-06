@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-03-07
+
+### Fixed
+- `paper_download` now treats `output_dir` as an explicit override only; when omitted, runtime fallback output directory resolution is used (`PAPER_DOWNLOAD_OUTPUT_DIR` -> `./downloads`).
+- Prevented duplicate-equivalent identifier races in parallel download service by deduplicating normalized identifiers before concurrent execution and remapping results to original input order.
+
+### Changed
+- Updated tool docs (EN/ZH) to reflect runtime-fallback semantics for `output_dir`.
+- Reworked test coverage to reduce false positives:
+  - converted tool registration checks into real pytest tests,
+  - strengthened Unpaywall metadata assertions,
+  - added tool-layer end-to-end tests for `paper_download`,
+  - added service-level tests for output-dir fallback and parallel dedup behavior.
+
 ## [0.9.0] - 2026-03-04
 
 ### Changed

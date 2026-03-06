@@ -112,7 +112,7 @@ PAPER_DOWNLOAD_EMAIL = "your-email@university.edu"
 参数：
 
 - `identifiers`（必填）：`list[str]`，1-50 项
-- `output_dir`（可选）：下载目录，默认 `./downloads`
+- `output_dir`（可选）：下载目录，默认使用运行时兜底（`PAPER_DOWNLOAD_OUTPUT_DIR` 或 `./downloads`）
 - `parallel`（可选）：并发 worker 数，`1-50`（默认 `10`）
 - `to_markdown`（可选）：是否转 Markdown，默认 `false`
 - `md_output_dir`（可选）：Markdown 输出目录，默认 `<output_dir>/md`

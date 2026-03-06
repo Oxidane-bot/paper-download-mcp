@@ -112,7 +112,7 @@ OA-first routing uses OpenAlex and Unpaywall first; CORE is disabled by default 
 Parameters:
 
 - `identifiers` (required): `list[str]`, 1-50 items
-- `output_dir` (optional): target directory (default `./downloads`)
+- `output_dir` (optional): target directory (default uses runtime fallback: `PAPER_DOWNLOAD_OUTPUT_DIR` or `./downloads`)
 - `parallel` (optional): concurrent workers, `1-50` (default `10`)
 - `to_markdown` (optional): convert PDF to Markdown (`false` by default)
 - `md_output_dir` (optional): Markdown directory (default `<output_dir>/md`)

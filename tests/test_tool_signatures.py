@@ -21,6 +21,8 @@ def test_paper_download_signature_defaults():
     assert signature.parameters["to_markdown"].default is False
     assert "md_output_dir" in signature.parameters
     assert signature.parameters["md_output_dir"].default is None
+    assert "output_dir" in signature.parameters
+    assert signature.parameters["output_dir"].default is None
 
 
 def test_paper_get_metadata_signature():

@@ -20,7 +20,7 @@ _format_core_result = core_to_mcp_download_result
 @mcp.tool()
 async def paper_download(
     identifiers: list[str],
-    output_dir: str | None = "./downloads",
+    output_dir: str | None = None,
     parallel: int = DEFAULT_PARALLEL_DOWNLOADS,
     to_markdown: bool = False,
     md_output_dir: str | None = None,
@@ -40,7 +40,7 @@ async def paper_download(
 
     Args:
         identifiers: List of DOIs, arXiv IDs, or URLs
-        output_dir: Save directory (default: './downloads')
+        output_dir: Save directory (default runtime fallback: `PAPER_DOWNLOAD_OUTPUT_DIR` or `./downloads`)
         parallel: Number of concurrent downloads (1-50, default: 10)
         to_markdown: Convert downloaded PDFs to Markdown (default: False)
         md_output_dir: Directory for generated Markdown files (default: '<output_dir>/md')

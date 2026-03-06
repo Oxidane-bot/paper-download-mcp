@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Quick test script to verify MCP tools are registered correctly."""
+"""Tests for MCP tool registration and exports."""
 
-import asyncio
 import sys
+
+import pytest
 
 sys.path.insert(0, "src")
 
@@ -10,37 +11,15 @@ from paper_download_mcp.server import mcp
 from paper_download_mcp.tools import download, metadata
 
 
-async def main():
-    """Test tool registration."""
-    print("=" * 60)
-    print("MCP Server Tool Registration Test")
-    print("=" * 60)
-
-    # Get registered tools
+@pytest.mark.asyncio
+async def test_registered_tools_include_expected_names():
     tools = await mcp.list_tools()
+    tool_names = {tool.name for tool in tools}
 
-    print(f"\nFound {len(tools)} registered tools:\n")
-
-    for i, tool in enumerate(tools, 1):
-        print(f"{i}. {tool}")
-        print()
-
-    print("=" * 60)
-    print("All tools registered successfully!")
-    print("=" * 60)
-
-    # Test that we can access the tool functions
-    print("\nTool functions accessible:")
-    print(f"  - paper_download: {hasattr(download, 'paper_download')}")
-    print(f"  - paper_get_metadata: {hasattr(metadata, 'paper_get_metadata')}")
-
-    return len(tools)
+    assert "paper_download" in tool_names
+    assert "paper_get_metadata" in tool_names
 
 
-if __name__ == "__main__":
-    import os
-
-    os.environ["SCIHUB_CLI_EMAIL"] = "test@university.edu"
-
-    count = asyncio.run(main())
-    sys.exit(0 if count == 2 else 1)
+def test_tool_functions_are_importable():
+    assert hasattr(download, "paper_download")
+    assert hasattr(metadata, "paper_get_metadata")
