@@ -24,12 +24,12 @@ class HTMLLandingSource(PaperSource):
     _MIN_CANDIDATE_SCORE = 500
     _MAX_PROBE_CANDIDATES = 3
     _FAST_FAIL_SKIP_HTML_HOST_MARKERS = (
-        "sciencedirect.com",
         "researchgate.net",
         "academia.edu",
         "sk.sagepub.com",
         "ideas.repec.org",
         "scispace.com",
+        "sciencedirect.com",
     )
     _FAST_FAIL_FORCE_PAGE_BYPASS_HOST_MARKERS = (
         "mdpi.com",
@@ -232,11 +232,7 @@ class HTMLLandingSource(PaperSource):
         base_url = self._strip_fragment(base_url)
         host = urlparse(base_url).netloc.lower()
         fast_fail = bool(getattr(self.downloader, "fast_fail", False))
-        if fast_fail and self._should_skip_html_fetch(host):
-            logger.debug(
-                f"[HTML Landing] Fast-fail skip challenge-heavy host before prefetch: {host}"
-            )
-            return None
+        skip_html_fetch = fast_fail and self._should_skip_html_fetch(host)
 
         # Try deterministic publisher URL derivation before full-page fetch.
         prefetch_candidates = derive_publisher_pdf_candidates(base_url)
@@ -254,9 +250,16 @@ class HTMLLandingSource(PaperSource):
             selected = prefetch_candidates[0]
             logger.info(f"[HTML Landing] Using deterministic prefetch candidate: {selected}")
             return selected
-        prefetched = self._probe_candidates(prefetch_candidates, mode="prefetch")
+        prefetched = None
+        if not self._should_defer_prefetch_probe(host=host, fast_fail=fast_fail):
+            prefetched = self._probe_candidates(prefetch_candidates, mode="prefetch")
         if prefetched:
             return prefetched
+        if skip_html_fetch:
+            logger.debug(
+                f"[HTML Landing] Fast-fail skip challenge-heavy host before full-page fetch: {host}"
+            )
+            return None
 
         force_challenge_bypass = fast_fail and any(
             marker in host for marker in self._FAST_FAIL_FORCE_PAGE_BYPASS_HOST_MARKERS
@@ -267,6 +270,8 @@ class HTMLLandingSource(PaperSource):
         if not html:
             return None
 
+        reader_fetched = False
+
         if self._should_force_reader_before_extraction(
             host=host,
             status=status,
@@ -276,6 +281,29 @@ class HTMLLandingSource(PaperSource):
             reader_html, reader_status = self._fetch_page_with_jina_reader(base_url)
             if reader_html:
                 html, status = reader_html, reader_status
+                reader_fetched = True
+
+        if fast_fail and self._looks_like_challenge_html(html):
+            if not self._should_try_reader_fallback(
+                host=host,
+                status=status,
+                html=html,
+                fast_fail=fast_fail,
+            ):
+                logger.debug(
+                    "[HTML Landing] Fast-fail: challenge HTML detected, skipping extraction"
+                )
+                return None
+            if not reader_fetched:
+                reader_html, reader_status = self._fetch_page_with_jina_reader(base_url)
+                if reader_html:
+                    html, status = reader_html, reader_status
+                    reader_fetched = True
+            if self._looks_like_challenge_html(html):
+                logger.debug(
+                    "[HTML Landing] Fast-fail: reader fallback still returned challenge HTML"
+                )
+                return None
 
         # Sometimes a server returns a PDF even for a non-.pdf URL.
         if status == 200 and html.lstrip().startswith("%PDF"):
@@ -292,7 +320,7 @@ class HTMLLandingSource(PaperSource):
 
         # Reader fallback is expensive; only attempt when primary HTML did not yield
         # a usable candidate.
-        if self._should_try_reader_fallback(
+        if not reader_fetched and self._should_try_reader_fallback(
             host=host,
             status=status,
             html=html,
@@ -508,6 +536,14 @@ class HTMLLandingSource(PaperSource):
         if cls._is_unhelpful_candidate_url(candidate) or cls._is_malformed_candidate_url(candidate):
             return False
         return ".pdf" in candidate or "/pdf" in candidate
+
+    @classmethod
+    def _should_defer_prefetch_probe(cls, *, host: str, fast_fail: bool) -> bool:
+        if not fast_fail:
+            return False
+        if any(marker in host for marker in cls._FAST_FAIL_DIRECT_PREFETCH_HOST_MARKERS):
+            return False
+        return any(marker in host for marker in cls._FAST_FAIL_READER_FALLBACK_HOST_MARKERS)
 
     @classmethod
     def _should_skip_html_fetch(cls, host: str) -> bool:

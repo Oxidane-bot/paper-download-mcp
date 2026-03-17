@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-03-17
+
+### Changed
+- Synced vendored `scihub_core` with upstream `scihub-cli` `v0.5.0` plus follow-up cleanup commit `194988f` (2026-03-17), including Europe PMC OA / OpenAIRE / OSTI / Semantic Scholar source additions and the latest downloader/session/routing refinements.
+- Preserved MCP runtime policy after the upstream sync:
+  - `fast_fail` remains enabled by default
+  - CORE remains disabled by default
+  - default parallel remains `10`
+
 ## [0.9.1] - 2026-03-07
 
 ### Fixed

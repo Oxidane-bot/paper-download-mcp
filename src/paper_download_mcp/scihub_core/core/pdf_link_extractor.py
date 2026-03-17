@@ -233,6 +233,62 @@ def derive_publisher_pdf_candidates(base_url: str, html: str | None = None) -> l
     return [url for url, _score in _extract_publisher_candidates(base_url, html_unescaped)]
 
 
+def should_try_html_landing(url: str | None) -> bool:
+    if not url:
+        return False
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return 0
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return False
+    host = parsed.netloc.lower()
+    heavy_skip = (
+        "mdpi.com",
+        "wiley.com",
+        "onlinelibrary.wiley.com",
+        "springer.com",
+        "link.springer.com",
+        "nature.com",
+        "tandfonline.com",
+        "sagepub.com",
+        "journals.sagepub.com",
+        "ieeexplore.ieee.org",
+        "ssrn.com",
+        "papers.ssrn.com",
+        "doi.org",
+        "dx.doi.org",
+    )
+    if any(marker in host for marker in heavy_skip):
+        return False
+    hints = (
+        "repository",
+        "repo",
+        "eprints",
+        "dspace",
+        "pure",
+        "cris",
+        "digitalcommons",
+        "escholarship",
+        "ojs",
+        "journals",
+        "library",
+        "archive",
+        "university",
+        "institute",
+        "bibl",
+        "handle.net",
+        "zenodo.org",
+        "osf.io",
+        "figshare.com",
+        "biorxiv.org",
+        "medrxiv.org",
+    )
+    if any(hint in host for hint in hints):
+        return True
+    return bool(host.endswith(".edu") or ".ac." in host)
+
+
 def _score_url(url: str) -> int:
     if not url:
         return 0
@@ -241,11 +297,16 @@ def _score_url(url: str) -> int:
     if url_lower.startswith(_SKIP_SCHEMES):
         return 0
 
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return 0
     host = parsed.netloc.lower()
     if any(marker in host for marker in _TRACKER_HOST_MARKERS):
         return 0
     path_lower = parsed.path.lower()
+    if "/thumbnail" in path_lower:
+        return 0
     if any(token in url_lower for token in _NEGATIVE_GATE_TOKENS):
         return 0
     if "/auth/" in path_lower:
@@ -280,6 +341,18 @@ def _score_url(url: str) -> int:
         score += 850
     if "tandfonline.com/doi/pdf/" in url_lower:
         score += 850
+    if (
+        "onlinelibrary.wiley.com/doi/pdf/" in url_lower
+        or "onlinelibrary.wiley.com/doi/epdf/" in url_lower
+    ):
+        score += 800
+    if "link.springer.com/content/pdf/" in url_lower and url_lower.endswith(".pdf"):
+        score += 900
+    if (
+        "journals.sagepub.com/doi/pdf" in url_lower
+        or "journals.sagepub.com/doi/pdfplus" in url_lower
+    ):
+        score += 800
     if "mdpi.com/" in url_lower and "/pdf" in url_lower:
         score += 700
     if host.endswith(".edu") or ".ac." in host or host.endswith(".gov"):
@@ -294,13 +367,47 @@ def _normalize_candidate(base_url: str, candidate: str) -> str | None:
     if not token:
         return None
 
+    if token.lower().startswith("pdf/"):
+        base_parsed = urlparse(base_url)
+        if base_parsed.netloc in {"pmc.ncbi.nlm.nih.gov", "www.ncbi.nlm.nih.gov"}:
+            path = base_parsed.path or ""
+            match = re.search(r"/articles/PMC\\d+/?", path, re.I)
+            if not match and "/pmc/articles/PMC" in path:
+                match = re.search(r"/pmc/articles/PMC\\d+/?", path, re.I)
+            if match:
+                base_url = urlunparse(
+                    base_parsed._replace(
+                        path=match.group(0).rstrip("/") + "/",
+                        query="",
+                        fragment="",
+                    )
+                )
+
     absolute = urljoin(base_url, token)
     parsed = urlparse(unescape(absolute.strip()))
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
     cleaned_path = _clean_trailing_junk(parsed.path or "")
+    cleaned_path = _collapse_repeated_pdf_suffix(cleaned_path)
+    cleaned_path = _truncate_after_first_pdf(cleaned_path)
+    cleaned_path = _normalize_dspace_api_path(cleaned_path)
+    if cleaned_path is None:
+        return None
     cleaned_query = _clean_trailing_junk(parsed.query or "")
     return urlunparse(parsed._replace(path=cleaned_path, query=cleaned_query, fragment=""))
+
+
+def _normalize_dspace_api_path(path: str) -> str | None:
+    if not path:
+        return path
+    lowered = path.lower()
+    if "/thumbnail" in lowered:
+        return None
+    if "/server/api/core/bundles/" in lowered and lowered.rstrip("/").endswith("/bitstreams"):
+        return None
+    if "/server/api/core/bitstreams/" in lowered and "/content" not in lowered:
+        return path.rstrip("/") + "/content"
+    return path
 
 
 def _clean_trailing_junk(value: str) -> str:
@@ -313,6 +420,22 @@ def _clean_trailing_junk(value: str) -> str:
             break
         cleaned = updated
     return cleaned
+
+
+def _collapse_repeated_pdf_suffix(path: str) -> str:
+    if not path:
+        return path
+    return re.sub(r"(\\.pdf)+$", ".pdf", path, flags=re.I)
+
+
+def _truncate_after_first_pdf(path: str) -> str:
+    if not path:
+        return path
+    lower = path.lower()
+    idx = lower.find(".pdf")
+    if idx == -1:
+        return path
+    return path[: idx + 4]
 
 
 def _extract_primary_inline_url(value: str) -> str | None:
@@ -338,7 +461,13 @@ def _is_challenge_or_gate_url(url: str) -> bool:
 
 def _decode_escaped_token(token: str) -> str:
     # Typical JS escaping in challenge pages.
-    token = token.replace("\\/", "/").replace("&amp;", "&")
+    token = (
+        token.replace("\\/", "/")
+        .replace("&amp;", "&")
+        .replace("&quot;", '"')
+        .replace("&q;", '"')
+        .replace("&apos;", "'")
+    )
     # Decode common unicode escapes conservatively.
     try:
         return bytes(token, "utf-8").decode("unicode_escape")
@@ -394,11 +523,56 @@ def _extract_publisher_candidates(base_url: str, html_unescaped: str = "") -> li
             doi = m.group(1).lstrip("/")
             out.append((f"https://www.tandfonline.com/doi/pdf/{doi}", 1050))
 
+    # Wiley (onlinelibrary.wiley.com).
+    if "onlinelibrary.wiley.com" in host:
+        m = re.search(r"/doi/(?:full|abs|pdf|epdf|pdfdirect)/([^?#]+)", path, re.I)
+        if not m:
+            m = re.search(r"/doi/([^?#]+)", path, re.I)
+        if m:
+            doi = m.group(1).strip("/")
+            if doi.startswith("10."):
+                out.append((f"https://onlinelibrary.wiley.com/doi/pdf/{doi}", 1030))
+                out.append((f"https://onlinelibrary.wiley.com/doi/epdf/{doi}", 1020))
+
+    # Springer (link.springer.com).
+    if "link.springer.com" in host:
+        m = re.search(r"/(?:article|chapter|book)/([^?#]+)", path, re.I)
+        if m:
+            doi = m.group(1).strip("/")
+            if doi.startswith("10."):
+                out.append((f"https://link.springer.com/content/pdf/{doi}.pdf", 1040))
+
+    # SAGE journals.
+    if "journals.sagepub.com" in host:
+        m = re.search(r"/doi/(?:abs|full|pdf|pdfplus)/([^?#]+)", path, re.I)
+        if not m:
+            m = re.search(r"/doi/([^?#]+)", path, re.I)
+        if m:
+            doi = m.group(1).strip("/")
+            if doi.startswith("10."):
+                out.append((f"https://journals.sagepub.com/doi/pdf/{doi}", 1020))
+                out.append((f"https://journals.sagepub.com/doi/pdfplus/{doi}", 1010))
+
     # MDPI article pages.
     if "mdpi.com" in host:
         normalized_path = _normalize_mdpi_article_path(parsed.path, parsed.query)
         if normalized_path:
             out.append((f"https://www.mdpi.com{normalized_path}/pdf", 980))
+
+    # SSRN landing pages.
+    if "ssrn.com" in host:
+        query_params = parse_qs(parsed.query or "")
+        abstract_id = (query_params.get("abstractid") or query_params.get("abstract_id") or [None])[
+            0
+        ]
+        if not abstract_id:
+            m = re.search(r"/abstract=([0-9]+)", path, re.I)
+            if m:
+                abstract_id = m.group(1)
+        if abstract_id:
+            base = f"https://papers.ssrn.com/sol3/Delivery.cfm?abstractid={abstract_id}"
+            out.append((base, 900))
+            out.append((f"{base}&type=2", 940))
 
     # arXiv HTML landing pages.
     if "arxiv.org" in host:
@@ -479,6 +653,8 @@ def _extract_dspace_candidates(soup: BeautifulSoup) -> list[str]:
             continue
         for value in _iter_json_strings(data, limit=120_000):
             value_lower = value.lower()
+            if "/thumbnail" in value_lower:
+                continue
             if (
                 ".pdf" in value_lower
                 or "/download/" in value_lower
@@ -486,7 +662,27 @@ def _extract_dspace_candidates(soup: BeautifulSoup) -> list[str]:
                 or "/server/api/core/bitstreams/" in value_lower
             ):
                 out.append(value)
+                derived = _dspace_bitstream_content_variant(value)
+                if derived and derived != value:
+                    out.append(derived)
     return out
+
+
+def _dspace_bitstream_content_variant(value: str) -> str | None:
+    """
+    DSpace Angular state often exposes bitstream API URLs that need /content appended.
+    """
+    if not value:
+        return None
+    parsed = urlparse(value)
+    path = parsed.path or ""
+    path_lower = path.lower()
+    if "/content" in path_lower:
+        return None
+    if "/server/api/core/bitstreams/" not in path_lower and "/bitstreams/" not in path_lower:
+        return None
+    new_path = path.rstrip("/") + "/content"
+    return urlunparse(parsed._replace(path=new_path, query="", fragment=""))
 
 
 def _extract_drupal_candidates(soup: BeautifulSoup) -> list[tuple[str, int]]:
